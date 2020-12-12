@@ -1,116 +1,66 @@
-var canvas, ctx, flag = false,
-    prevX = 0,
-    currX = 0,
-    prevY = 0,
-    currY = 0,
-    dot_flag = false;
+var lineWidth = 10;
+var lineCap = "round";
 
-var x = "black",
-    y = 2;
+var socket = io();
 
-function init() {
-    canvas = document.getElementById('can');
-    ctx = canvas.getContext("2d");
-    w = canvas.width;
-    h = canvas.height;
+window.onload = function() {
+    const canvas = document.getElementById('can');
+    const ctx = canvas.getContext('2d');
 
-    canvas.addEventListener("mousemove", function (e) {
-        findxy('move', e)
-    }, false);
-    canvas.addEventListener("mousedown", function (e) {
-        findxy('down', e)
-    }, false);
-    canvas.addEventListener("mouseup", function (e) {
-        findxy('up', e)
-    }, false);
-    canvas.addEventListener("mouseout", function (e) {
-        findxy('out', e)
-    }, false);
-}
+    function resizeCanvas() {
+        canvas.height = window.innerHeight;
+        canvas.width = window.innerWidth;
+    } resizeCanvas();
 
-function color(obj) {
-    switch (obj.id) {
-        case "green":
-            x = "green";
-            break;
-        case "blue":
-            x = "blue";
-            break;
-        case "red":
-            x = "red";
-            break;
-        case "yellow":
-            x = "yellow";
-            break;
-        case "orange":
-            x = "orange";
-            break;
-        case "black":
-            x = "black";
-            break;
-        case "white":
-            x = "white";
-            break;
+    //window.onresize = resizeCanvas;
+
+    var isDrawing = false;
+
+    var strokeArr = [];
+
+    function startDrawing(e) {
+        isDrawing = true;
+        draw(e);
+        strokeArr = [];
     }
-    if (x == "white") y = 14;
-    else y = 2;
-
-}
-
-function draw() {
-    ctx.beginPath();
-    ctx.moveTo(prevX, prevY);
-    ctx.lineTo(currX, currY);
-    ctx.strokeStyle = x;
-    ctx.lineWidth = y;
-    ctx.stroke();
-    ctx.closePath();
-}
-
-function erase() {
-    var m = confirm("Want to clear");
-    if (m) {
-        ctx.clearRect(0, 0, w, h);
-        document.getElementById("canvasimg").style.display = "none";
+    function stopDrawing() {
+        isDrawing = false;
+        ctx.beginPath();
+        console.log(strokeArr);
+        socket.emit('stroke', {
+            coords: strokeArr,
+            lineWidth: lineWidth,
+            lineCap: lineCap
+        });
     }
-}
 
-function save() {
-    document.getElementById("canvasimg").style.border = "2px solid";
-    var dataURL = canvas.toDataURL();
-    document.getElementById("canvasimg").src = dataURL;
-    document.getElementById("canvasimg").style.display = "inline";
-}
+    function draw(e) {
+        if (!isDrawing) return;
 
-function findxy(res, e) {
-    if (res == 'down') {
-        prevX = currX;
-        prevY = currY;
-        currX = e.clientX - canvas.offsetLeft;
-        currY = e.clientY - canvas.offsetTop;
+        ctx.lineWidth = lineWidth;
+        ctx.lineCap = lineCap;
+        ctx.lineTo(e.clientX, e.clientY);
+        strokeArr.push({x: e.clientX, y: e.clientY});
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(e.clientX, e.clientY);
+    }
 
-        flag = true;
-        dot_flag = true;
-        if (dot_flag) {
-            ctx.beginPath();
-            ctx.fillStyle = x;
-            ctx.fillRect(currX, currY, 2, 2);
-            ctx.closePath();
-            dot_flag = false;
+    canvas.onmousedown = startDrawing;
+    canvas.onmouseup = stopDrawing;
+    canvas.onmousemove = draw;
+
+    socket.on('receivedStroke', function(strokeObj) {
+        var coords = strokeObj.coords;
+        ctx.lineWidth = strokeObj.lineWidth;
+        ctx.lineCap = strokeObj.lineCap;
+        ctx.beginPath();
+        ctx.moveTo(coords[0].x, coords[0].y);
+        for (var i = 1; i < coords.length; i++) {
+            ctx.lineTo(coords[i].x, coords[i].y);
+            ctx.stroke();
+            ctx.moveTo(coords[i].x, coords[i].y);
         }
-    }
-    if (res == 'up' || res == "out") {
-        flag = false;
-    }
-    if (res == 'move') {
-        if (flag) {
-            prevX = currX;
-            prevY = currY;
-            currX = e.clientX - canvas.offsetLeft;
-            currY = e.clientY - canvas.offsetTop;
-            draw();
-        }
-    }
+        ctx.beginPath();
+    })
 }
-
-init();

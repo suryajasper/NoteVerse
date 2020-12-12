@@ -9,10 +9,12 @@ app.use((req, res, next) => {
 });
 var http = require('http').createServer(app);
 var io = require('socket.io')(http);
-var port = process.env.PORT || 2000;
+var port = process.env.PORT || 2000; 
 
 io.on('connection', socket => {
-    
+    socket.on('stroke', function(strokeArr) {
+        socket.broadcast.emit('receivedStroke', strokeArr);
+    })
 })
 
 http.listen(port, function(){
