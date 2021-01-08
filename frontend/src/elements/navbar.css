@@ -1,0 +1,25 @@
+.container {
+  position: absolute;
+  right: 0;
+  left: 0;
+  z-index: 10;
+  min-width: 200px;
+  margin: 0.5em 3em;
+  padding: 0.75em 1.4rem 0.85em 1.4em;
+  color: #666;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 32px;
+}
+
+.home {
+  font-weight: 500;
+  font-size: 1.75rem;
+  font-family: var(--font-a);
+}
+
+.right {
+  float: right;
+  padding-top: 0.15rem;
+  font-family: var(--font-mono);
+}

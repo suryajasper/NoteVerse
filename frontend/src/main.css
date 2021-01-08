@@ -1,14 +1,16 @@
+@import url('https://fonts.googleapis.com/css2?family=Fira+Mono:wght@500&family=Open+Sans:ital,wght@0,600;0,700;1,400&family=Ubuntu:wght@400;500;700&display=swap');
+
 :root {
   /* main color */
-  --hi: #fabd2f;
+  --hi: #fcaf58;
   --hi-alt: #d79921;
 
   /* secondary color */
-  --sec: #83a598;
+  --sec: #db9065;
   --sec-alt: #458588;
 
   /* background color for the home page */
-  --bg: #282828;
+  --bg: #fafafa;
   --bg1: #3c3836;
 
   /* color for text inputs & checkbox bg */
@@ -21,9 +23,9 @@
   /* red for error */
   --red: #cc241d;
   --red-bright: #fb4934;
-  --font-a: 'Noto Sans', sans-serif;
+  --font-a: 'Ubuntu', sans-serif;
   --font-b: 'Open Sans', sans-serif;
-  --font-mono: 'Fira Mono', monospace;
+  --font-mono: monospace;
 
   font-size: 16px;
   line-height: 1.5em;
@@ -33,4 +35,35 @@ body {
   color: var(--fg);
   font-family: var(--font-b);
   background-color: var(--bg);
+}
+
+h1 {
+  margin: 0;
+  padding: 0 0 0.5em 0;
+  color: var(--fg-bright);
+  font-size: 2rem;
+  font-family: var(--font-a);
+  line-height: 1em;
+}
+
+br {
+  line-height: 1.5em;
+}
+
+p {
+  margin: 0;
+  padding-bottom: 1.5em;
+  font-size: 1rem;
+  font-family: var(--font-b);
+  line-height: 1.5em;
+}
+
+a {
+  color: var(--hi);
+  text-decoration: none;
+}
+
+a:hover,
+a:focus {
+  color: var(--hi-alt);
 }
