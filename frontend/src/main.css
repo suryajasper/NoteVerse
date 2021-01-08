@@ -1,0 +1,36 @@
+:root {
+  /* main color */
+  --hi: #fabd2f;
+  --hi-alt: #d79921;
+
+  /* secondary color */
+  --sec: #83a598;
+  --sec-alt: #458588;
+
+  /* background color for the home page */
+  --bg: #282828;
+  --bg1: #3c3836;
+
+  /* color for text inputs & checkbox bg */
+  --bg2: #504945;
+
+  /* main text color */
+  --fg: #ebdbb2;
+  --fg-bright: #fbf1c7;
+
+  /* red for error */
+  --red: #cc241d;
+  --red-bright: #fb4934;
+  --font-a: 'Noto Sans', sans-serif;
+  --font-b: 'Open Sans', sans-serif;
+  --font-mono: 'Fira Mono', monospace;
+
+  font-size: 16px;
+  line-height: 1.5em;
+}
+
+body {
+  color: var(--fg);
+  font-family: var(--font-b);
+  background-color: var(--bg);
+}
