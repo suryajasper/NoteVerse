@@ -31,7 +31,8 @@
     "postcss-easings": "^3.0.1",
     "postcss-loader": "^4.1.0",
     "stylelint-config-rational-order": "^0.1.2",
-    "stylelint-config-standard": "^20.0.0"
+    "stylelint-config-standard": "^20.0.0",
+    "two.js": "^0.7.0-stable.1"
   },
   "devDependencies": {
     "@babel/core": "^7.12.10",
