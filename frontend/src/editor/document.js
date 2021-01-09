@@ -7,14 +7,17 @@ export default class Document {
     this.state = {
       strokes: [],
       drawing: false,
-      style: vnode.attrs.style,
+      ...vnode.attrs.state,
+      idleTimeout: 4,
+      velThresh: 1,
+      lineMode: false,
     };
 
     if (!this.state.style) {
       this.state.style = {
-        stroke: '#FFFF00',
-        linewidth: 15,
-        opacity: 0.5,
+        stroke: '#333',
+        linewidth: 4,
+        opacity: 1,
         cap: 'round',
         join: 'round',
       };
@@ -63,14 +66,48 @@ export default class Document {
   handleToolDown(e) {
     this.state.drawing = true;
     this.state.lastPos = this.makePoint(this.getRelativeMousePosition(e));
+    this.state.lineMode = false;
+    this.currIdle = 0;
     this.currStroke = undefined;
+    this.idleInterval = setInterval(this.setLineMode.bind(this), 100);
+  }
+
+  setLineMode() {
+    if (this.vel > this.state.velThresh) {
+      this.currIdle = 0;
+      this.vel = 0;
+      return;
+    }
+
+    if (this.currIdle > this.state.idleTimeout) {
+      this.lineMode = true;
+      clearInterval(this.idleInterval);
+      this.handleLineMode();
+      return;
+    }
+
+    this.currIdle += 1;
+  }
+
+  handleLineMode() {
+    const collection = new Two.Utils.Collection();
+    collection.push(this.currStroke.vertices.shift());
+    collection.push(this.currStroke.vertices.pop());
+    this.currStroke.vertices = collection;
   }
 
   handleToolDrag(e) {
     const pos = this.makePoint(this.getRelativeMousePosition(e));
+    this.vel = Math.sqrt(
+      (pos.x - this.state.lastPos.x) ** 2 + (pos.y - this.state.lastPos.y) ** 2,
+    );
 
     if (this.currStroke) {
-      this.currStroke.vertices.push(this.makePoint(pos));
+      this.currStroke.vertices.push(pos);
+
+      if (this.lineMode) {
+        this.handleLineMode();
+      }
     } else {
       this.currStroke = this.two.makePath(this.state.lastPos, pos, true);
       this.currStroke.noFill();
@@ -82,14 +119,18 @@ export default class Document {
 
   handleToolUp() {
     this.state.drawing = false;
+    clearInterval(this.idleInterval);
+
     this.state.strokes.push(this.currStroke);
+    this.lineMode = false;
     this.currStroke = undefined;
   }
 
-  view(vnode) {
+  view() {
     return m('div', {
       class: styles.letter_doc,
       onmousedown: this.handleToolDown.bind(this),
+      onmouseout: this.handleToolUp.bind(this),
       onpointermove: (e) => {
         if (this.state.drawing) {
           this.handleToolDrag(e);
