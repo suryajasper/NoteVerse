@@ -2,20 +2,19 @@ import m from 'mithril';
 import Two from 'two.js';
 import styles from './editor.css';
 
-export default class Document {
+export default class Canvas {
   constructor(vnode) {
     this.state = {
       strokes: [],
       drawing: false,
       ...vnode.attrs.state,
-      idleTimeout: 4,
-      velThresh: 1,
+      lineModeTimeout: 500,
       lineMode: false,
     };
 
     if (!this.state.style) {
       this.state.style = {
-        stroke: '#333',
+        stroke: '#555',
         linewidth: 4,
         opacity: 1,
         cap: 'round',
@@ -66,30 +65,21 @@ export default class Document {
   handleToolDown(e) {
     this.state.drawing = true;
     this.state.lastPos = this.makePoint(this.getRelativeMousePosition(e));
-    this.state.lineMode = false;
+
     this.currIdle = 0;
-    this.currStroke = undefined;
-    this.idleInterval = setInterval(this.setLineMode.bind(this), 100);
-  }
 
-  setLineMode() {
-    if (this.vel > this.state.velThresh) {
-      this.currIdle = 0;
-      this.vel = 0;
-      return;
-    }
+    this.currStroke = this.two.makeCurve(true);
+    this.currStroke.noFill();
+    this.currStroke = Object.assign(this.currStroke, this.state.style);
 
-    if (this.currIdle > this.state.idleTimeout) {
-      this.lineMode = true;
-      clearInterval(this.idleInterval);
-      this.handleLineMode();
-      return;
-    }
-
-    this.currIdle += 1;
+    // should be able to tap to place points without dragging
+    this.currStroke.vertices.push(this.state.lastPos);
+    this.currStroke.vertices.push(this.state.lastPos);
   }
 
   handleLineMode() {
+    this.lineMode = true;
+
     const collection = new Two.Utils.Collection();
     collection.push(this.currStroke.vertices.shift());
     collection.push(this.currStroke.vertices.pop());
@@ -98,20 +88,24 @@ export default class Document {
 
   handleToolDrag(e) {
     const pos = this.makePoint(this.getRelativeMousePosition(e));
-    this.vel = Math.sqrt(
+
+    const vel = Math.sqrt(
       (pos.x - this.state.lastPos.x) ** 2 + (pos.y - this.state.lastPos.y) ** 2,
     );
 
-    if (this.currStroke) {
-      this.currStroke.vertices.push(pos);
+    if (vel > 1) {
+      clearTimeout(this.idleTimeout);
+      this.idleTimeout = undefined;
+    }
 
-      if (this.lineMode) {
-        this.handleLineMode();
-      }
-    } else {
-      this.currStroke = this.two.makePath(this.state.lastPos, pos, true);
-      this.currStroke.noFill();
-      this.currStroke = Object.assign(this.currStroke, this.state.style);
+    if (!this.idleTimeout) {
+      this.idleTimeout = setTimeout(this.handleLineMode.bind(this), this.state.lineModeTimeout);
+    }
+
+    this.currStroke.vertices.push(pos);
+
+    if (this.lineMode) {
+      this.handleLineMode();
     }
 
     this.state.lastPos = pos;
@@ -119,7 +113,8 @@ export default class Document {
 
   handleToolUp() {
     this.state.drawing = false;
-    clearInterval(this.idleInterval);
+    clearTimeout(this.idleTimeout);
+    this.idleTimeout = undefined;
 
     this.state.strokes.push(this.currStroke);
     this.lineMode = false;

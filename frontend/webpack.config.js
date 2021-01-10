@@ -57,7 +57,6 @@ module.exports = {
             sourceMap: true,
           },
         },
-        'postcss-loader',
       ],
     }],
   },
