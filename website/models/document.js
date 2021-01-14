@@ -46,4 +46,4 @@ var documentSchema = mongoose.Schema({
   }]
 })
 
-module.exports.Document = mongoose.model('Document', documentSchema, 'document');
+module.exports = mongoose.model('Document', documentSchema, 'document');

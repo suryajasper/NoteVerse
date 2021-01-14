@@ -1,6 +1,6 @@
-var express = require('express');
+const express = require('express');
 const bodyParser = require('body-parser');
-var app = express();
+const app = express();
 app.use(express.static(__dirname + '/client'));
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', 'http://localhost:2000');
@@ -9,23 +9,50 @@ app.use((req, res, next) => {
   next();
 });
 app.use(bodyParser.urlencoded({ extended: true }));
-var http = require('http').createServer(app);
-var io = require('socket.io')(http);
-var port = process.env.PORT || 2000;
+const http = require('http').createServer(app);
+const io = require('socket.io')(http);
+const port = process.env.PORT || 2000;
 
 const mongoose = require('mongoose');
-require(__dirname + '/models/user.js');
-require(__dirname + '/models/document.js');
-require(__dirname + '/models/elements.js');
+const User = require('./models/user');
+const Document = require('./models/document');
 
 const uri = "mongodb+srv://nanocheck:iPNNEole7FRCFplF@noteversecluster.oxlnj.mongodb.net/documents";
 mongoose.connect(uri, { useUnifiedTopology: true, useNewUrlParser: true });
 var db = mongoose.connection;
 
 app.post('/createUser', (req, res) => {
-  req.body;
-  res.sendStatus(200);
+  if (!(req.body && req.body.username && req.body.email && req.body.password)) return res.status(400).send('no data');
+  User.findOne({email: req.body.email}, (err, document) => {
+    if (err) return res.send(err);
+    if (document != null) return res.status(400).send('email address already taken');
+    console.log('passouter', req.body.password);
+    console.log('good unique address');
+    var user = new User({
+      username: req.body.username,
+      email: req.body.email,
+      hash: req.body.password
+    });
+    // user.setPassword(req.body.password);
+    user.save().then(function(newRes) {
+      console.log('salt', newRes.salt);
+      console.log('email', newRes.email);
+      res.status(300).send('user successfully created');
+    });
+  })
 });
+
+app.post('/authenticateUser', (req, res) => {
+  if (!(req.body && req.body.password && (req.body.username || req.body.email))) return res.status(400).send('no data');
+  User.findOne({email: req.body.email}, (err, document) => {
+    if (!document || err) return res.status(401).send('could not find user');
+    if (document.isValidPassword(req.body.password)) {
+      return res.status(200).send('valid password');
+    } else {
+      return res.status(400).send('invalid password');
+    }
+  })
+})
 
 app.post('/newDocument', (req, res) => {
   var docInfo = req.body;
