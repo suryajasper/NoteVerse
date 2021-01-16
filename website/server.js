@@ -76,17 +76,27 @@ app.post('/newDocument', (req, res) => {
   res.status(201).send('added document');
 })
 
-app.post('/addCollaborator', (req, res) => {
+app.post('/addCollaborator', async (req, res) => {
   var collabInfo = req.body;
   if (!collabInfo) {
     return res.status(400).send('missing query');
   }
-  Document.updateOne({name: collabInfo.docName}, 
-    {$addToSet: { userPermissions: [{
-      authorUID: collabInfo.uid,
-      editingMode: collabInfo.editingMode,
-      canShare: collabInfo.canShare
-  }]} })
+
+  var userInfo = await User.findOne({email: req.body.email});
+  if (userInfo == null) return res.status(400).send('no user with matching credentials');
+
+  var docInfo = await Document.findOne(collabInfo.docId);
+  if (docInfo == null) return res.status(400).send('could not find document with id', collabInfo.docId);
+
+  Document.updateOne({id: collabInfo.docId}, {
+    $addToSet: { 
+      userPermissions: [{
+        authorUID: userInfo.id,
+        editingMode: collabInfo.editingMode,
+        canShare: collabInfo.canShare
+      }]
+    } 
+  })
 })
 
 app.post('/updateCollaborator', (req, res) => {
@@ -111,4 +121,3 @@ io.on('connection', socket => {
 http.listen(port, function(){
   console.log('listening on 127.0.0.1:' + port.toString());
 });
-  
