@@ -66,6 +66,9 @@ export default class Canvas {
   }
 
   handleToolDrag(e) {
+    if (e instanceof TouchEvent) {
+
+    }
     const pos = makePoint(getRelativeMousePosition(e, this.scale));
 
     const vel = Math.sqrt(
@@ -86,6 +89,7 @@ export default class Canvas {
     if (this.lineMode) {
       this.handleLineMode();
     }
+    console.log('test');
 
     this.state.lastPos = pos;
   }
@@ -114,6 +118,14 @@ export default class Canvas {
       },
       onmouseup: (e) => {
         vnode.dom.removeEventListener('pointermove', this.handleToolDrag);
+        this.handleToolUp(e);
+      },
+      ontouchstart: (e) => {
+        this.handleToolDown(e);
+        vnode.dom.addEventListener('touchmove', this.handleToolDrag);
+      },
+      ontouchend: (e) => {
+        vnode.dom.removeEventListener('touchmove', this.handleToolDrag);
         this.handleToolUp(e);
       },
     });

@@ -7,7 +7,7 @@
     "test": "tap",
     "build": "webpack --mode production --config webpack.config.js",
     "profile": "webpack --mode production --config webpack.profile.js",
-    "dev": "webpack serve --mode development --config webpack.dev.js --port 6969"
+    "dev": "webpack serve --mode development --config webpack.dev.js --port 6969 --host 0.0.0.0"
   },
   "author": "",
   "license": "ISC",
