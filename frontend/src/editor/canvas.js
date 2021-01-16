@@ -8,20 +8,11 @@ export default class Canvas {
     this.state = {
       strokes: [],
       drawing: false,
-      ...vnode.attrs.state,
       lineModeTimeout: 500,
       lineMode: false,
     };
 
-    if (!this.state.style) {
-      this.state.style = {
-        stroke: '#555',
-        linewidth: 4,
-        opacity: 1,
-        cap: 'round',
-        join: 'round',
-      };
-    }
+    this.state.style = vnode.attrs.editorState.style;
   }
 
   oncreate(vnode) {
@@ -46,6 +37,8 @@ export default class Canvas {
       this.scale = vnode.dom.clientWidth / this.initSize.width;
       this.two.scene.scale = this.scale;
     });
+
+    this.handleToolDrag = this.handleToolDrag.bind(this);
   }
 
   handleToolDown(e) {
@@ -106,17 +99,23 @@ export default class Canvas {
     this.currStroke = undefined;
   }
 
-  view() {
+  view(vnode) {
+    this.state.style = vnode.attrs.editorState.style;
+
     return m('div', {
       class: styles.letter_doc,
-      onmousedown: this.handleToolDown.bind(this),
-      onmouseout: this.handleToolUp.bind(this),
-      onpointermove: (e) => {
-        if (this.state.drawing) {
-          this.handleToolDrag(e);
-        }
+      onmousedown: (e) => {
+        this.handleToolDown(e);
+        vnode.dom.addEventListener('pointermove', this.handleToolDrag);
       },
-      onmouseup: this.handleToolUp.bind(this),
+      onmouseout: (e) => {
+        vnode.dom.removeEventListener('pointermove', this.handleToolDrag);
+        this.handleToolUp(e);
+      },
+      onmouseup: (e) => {
+        vnode.dom.removeEventListener('pointermove', this.handleToolDrag);
+        this.handleToolUp(e);
+      },
     });
   }
 }
