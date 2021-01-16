@@ -1,0 +1,72 @@
+.container {
+  position: absolute;
+  top: calc(50% - (25em / 2));
+  left: calc((100vw - (90vw - 6em)) / 2 - 5.1em);
+  z-index: 999;
+  width: 3.5em;
+  overflow: hidden;
+  background-color: #fff;
+  border-radius: 32px;
+  box-shadow: 0 0 3px 0 rgba(60, 64, 67, 0.302);
+  transition: width 0.4s cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+.toolbar {
+  width: 3.5em;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  margin-left: 3.75em;
+  padding: 1em;
+  border-radius: 32px;
+}
+
+.none {
+  display: none;
+}
+
+.expand {
+  width: 15em;
+}
+
+@media only screen and (min-width: 1230px) {
+  .container {
+    left: calc(50% - 512px - 5.1em);
+  }
+}
+
+.tool {
+  width: 44px;
+  height: 44px;
+  margin: 8px auto;
+  border-radius: 32px;
+  cursor: pointer;
+  fill: #333;
+}
+
+.selected {
+  background-color: #333;
+  fill: #fff;
+}
+
+div.tool:hover {
+  background-color: #eee;
+}
+
+div.selected:hover {
+  background-color: #333;
+}
+
+svg {
+  display: block;
+  width: 28px;
+  height: 28px;
+  margin: 0 auto;
+  padding-top: 8px;
+  fill: inherit;
+}

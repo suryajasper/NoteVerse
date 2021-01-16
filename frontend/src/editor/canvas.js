@@ -1,6 +1,7 @@
 import m from 'mithril';
 import Two from 'two.js';
 import styles from './editor.css';
+import { getRelativeMousePosition, makePoint } from './util';
 
 export default class Canvas {
   constructor(vnode) {
@@ -47,24 +48,9 @@ export default class Canvas {
     });
   }
 
-  getRelativeMousePosition(e) {
-    const rect = e.target.getBoundingClientRect();
-    const pos = {
-      x: (e.clientX - rect.left) / this.scale,
-      y: (-(rect.top - e.clientY)) / this.scale,
-    };
-    return pos;
-  }
-
-  makePoint(pos) {
-    const v = new Two.Vector(pos.x, pos.y);
-    v.position = new Two.Vector().copy(v);
-    return v;
-  }
-
   handleToolDown(e) {
     this.state.drawing = true;
-    this.state.lastPos = this.makePoint(this.getRelativeMousePosition(e));
+    this.state.lastPos = makePoint(getRelativeMousePosition(e, this.scale));
 
     this.currIdle = 0;
 
@@ -87,7 +73,7 @@ export default class Canvas {
   }
 
   handleToolDrag(e) {
-    const pos = this.makePoint(this.getRelativeMousePosition(e));
+    const pos = makePoint(getRelativeMousePosition(e, this.scale));
 
     const vel = Math.sqrt(
       (pos.x - this.state.lastPos.x) ** 2 + (pos.y - this.state.lastPos.y) ** 2,
@@ -114,7 +100,6 @@ export default class Canvas {
   handleToolUp() {
     this.state.drawing = false;
     clearTimeout(this.idleTimeout);
-    this.idleTimeout = undefined;
 
     this.state.strokes.push(this.currStroke);
     this.lineMode = false;
