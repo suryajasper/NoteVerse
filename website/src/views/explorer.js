@@ -3,11 +3,47 @@ import File from './file'
 import styles from '../explorer.css';
 import Folder from './folder';
 
-var folders = [{fileName: 'bruh', dateModified: new Date()}, {fileName: 'bruh', dateModified: new Date()}];
-var files = [{fileName: 'bruh', dateModified: new Date()}, {fileName: 'bruh', dateModified: new Date()}, {fileName: 'bruh', dateModified: new Date()}, {fileName: 'bruh', dateModified: new Date()}];
+var Content = {
+  lastPath: null,
+  folders: [],
+  files: [],
+  fetch: function() {
+    var self = this;
+    m.request({
+      method: "GET",
+      url: "http://localhost:2000/getDocuments",
+      params: {
+        uid: 'suryajasper',
+        path: self.lastPath
+      }
+    }).then(function(elements) {
+      console.log(elements);
+      if (!elements) return;
+      self.files = [];
+      self.folders = [];
+      for (var element of elements) {
+        element.isNew = false;
+        if (element.isFile) self.files.push(element);
+        else self.folders.push(element);
+      }
+    }).catch(function(error) {
+      window.location.href = '/notes#!/root/';
+    })
+  }
+}
 
 var Explorer = {
-  view() {
+  oninit: function(vnode) {
+    console.log(vnode.attrs.path);
+    Content.lastPath = vnode.attrs.path;
+    Content.fetch();
+  },
+  view: function(vnode) {
+    if (vnode.attrs.path != Content.lastPath) {
+      Content.lastPath = vnode.attrs.path;
+      console.log(Content.lastPath);
+      Content.fetch();
+    }
     return [m('div', {className: `${styles.explorerContainer}`}, [
       m('div', {className: `${styles.centerHorizontalContainer}`}, [
         m('div', {className: `${styles.centerHorizontalChild} ${styles.optionsMenu} ` }, [
@@ -16,13 +52,33 @@ var Explorer = {
             m('div', {className: `${styles.dropdownContent}`}, [
               m('div', {className: `${styles.dropdownElement}`, onclick: function() {
                 var date = new Date();
-                files.push({fileName: 'Note ' + date.toDateString() + ' ' + date.toTimeString(), dateModified: date});
+                var newFileObj = {fileName: 'Note ' + date.toDateString() + ' ' + date.toTimeString(), dateModified: date, isNew: true};
+                Content.files.push(newFileObj);
+                m.request({
+                  method: 'POST',
+                  url: 'http://localhost:2000/newDocument',
+                  params: {
+                    fileName: newFileObj.fileName,
+                    uid: 'suryajasper',
+                    path: vnode.attrs.path
+                  }
+                });
               }}, [
                 m('img', {src: '/src/images/File.svg'})
               ]),
               m('div', {className: `${styles.dropdownElement}`, onclick: function() {
                 var date = new Date();
-                folders.push({fileName: 'New Folder'});
+                var newFolderObj = {fileName: 'New Folder', dateModified: date, isNew: true};
+                Content.folders.push(newFolderObj);
+                m.request({
+                  method: 'POST',
+                  url: 'http://localhost:2000/newFolder',
+                  params: {
+                    fileName: newFolderObj.fileName,
+                    uid: 'suryajasper',
+                    path: vnode.attrs.path
+                  }
+                });
               }}, [
                 m('img', {src: '/src/images/Folder.svg'})
               ])
@@ -33,9 +89,9 @@ var Explorer = {
         ])
       ]),
       m('p', {className: `${styles.elementTypeName}`}, 'Folders'),
-      m('div', {className: `${styles.foldersView}`}, folders.map(folderObj => m(Folder, folderObj))),
+      m('div', {className: `${styles.foldersView}`}, Content.folders.map(folderObj => m(Folder, folderObj))),
       m('p', {className: `${styles.elementTypeName}`}, 'Files'),
-      m('div', {className: `${styles.explorerContent}`}, files.map(fileObj => m(File, fileObj)))
+      m('div', {className: `${styles.explorerContent}`}, Content.files.map(fileObj => m(File, fileObj)))
     ])]
   }
 }

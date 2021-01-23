@@ -3,12 +3,13 @@ const bodyParser = require('body-parser');
 const app = express();
 app.use(express.static(__dirname + '/client'));
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:2000');
+  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8812');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
   res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept');
   next();
 });
 app.use(bodyParser.urlencoded({ extended: true }));
+//app.use(bodyParser.json());
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 const port = process.env.PORT || 2000;
@@ -16,10 +17,12 @@ const port = process.env.PORT || 2000;
 const mongoose = require('mongoose');
 const User = require('./models/user');
 const Document = require('./models/document');
+const File = require('./models/file');
 
 const uri = "mongodb+srv://nanocheck:iPNNEole7FRCFplF@noteversecluster.oxlnj.mongodb.net/documents";
 mongoose.connect(uri, { useUnifiedTopology: true, useNewUrlParser: true });
 var db = mongoose.connection;
+
 
 app.post('/createUser', (req, res) => {
   if (!(req.body && req.body.username && req.body.email && req.body.password)) return res.status(400).send('no data');
@@ -55,13 +58,13 @@ app.post('/authenticateUser', (req, res) => {
 })
 
 app.post('/newDocument', (req, res) => {
-  var docInfo = req.body;
-  console.log(req.body);
+  var docInfo = req.query;
+  console.log('new document params', req.query);
   if (!docInfo) {
     return res.sendStatus(400);
   }
   var docSetup = new Document({
-    name: docInfo.name,
+    name: docInfo.fileName,
     authorUID: docInfo.uid,
     dateCreated: new Date(),
     dateLastEdited: new Date(),
@@ -73,7 +76,95 @@ app.post('/newDocument', (req, res) => {
     }]
   });
   docSetup.save();
+  var fileSetup = new File({
+    isFile: true,
+    fileName: docInfo.fileName,
+    authorUID: docInfo.uid,
+    path: docInfo.path,
+    dateCreated: new Date(),
+    dateModified: new Date()
+  });
+  fileSetup.save();
   res.status(201).send('added document');
+})
+
+app.post('/newFolder', (req, res) => {
+  var folderInfo = req.query;
+  console.log(req.query);
+  if (!folderInfo) {
+    return res.sendStatus(400);
+  }
+  var folderSetup = new File({
+    isFile: false,
+    fileName: folderInfo.fileName,
+    authorUID: folderInfo.uid,
+    path: folderInfo.path,
+    dateCreated: new Date(),
+    dateModified: new Date()
+  });
+  folderSetup.save();
+  res.status(201).send('added document');
+})
+
+app.post('/updateFolder', (req, res) => {
+  var update = req.query;
+  console.log('update', update);
+  if (!update) {
+    return res.sendStatus(400);
+  }
+
+  File.updateOne(update.query, update.update).then(function(result) {
+    console.log('updated!');
+  });
+
+  var start = (update.query.path + '/').replace('//', '/');
+  var inFolder = new RegExp('^' + start + update.query.fileName);
+
+  File.find({path: inFolder}, function(err, files) {
+    for (var file of files) {
+      console.log(file.path);
+      var newPath = file.path.replace(start + update.query.fileName, start + update.update.fileName);
+      file.path = newPath;
+      file.save();
+    }
+    return res.json({oldName: update.query.fileName, newName: update.update.fileName});
+  })
+})
+
+app.get('/getDocuments', async (req, res) => {
+  var pathInfo = req.query;
+  console.log(req.query);
+  if (!pathInfo) {
+    return res.sendStatus(400);
+  }
+
+  var allDocs = await File.find({
+    authorUID: pathInfo.uid,
+    path: pathInfo.path
+  }).exec();
+
+  if (allDocs.length > 0) {
+    return res.json(allDocs);
+  }
+
+  console.log(pathInfo.path.substring(0, pathInfo.path.lastIndexOf('/')));
+
+  var inNewFolder = await File.findOne({
+    authorUID: pathInfo.uid,
+    isFile: false,
+    path: pathInfo.path.substring(0, pathInfo.path.lastIndexOf('/')),
+    fileName: pathInfo.path.substring(pathInfo.path.lastIndexOf('/')+1)
+  });
+
+  if (inNewFolder) {
+    return res.json(allDocs);
+  }
+
+  console.log('if this prints, god is dead');
+
+  return res.status(401).send('could not find location');
+
+
 })
 
 app.post('/addCollaborator', async (req, res) => {
