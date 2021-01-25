@@ -117,18 +117,23 @@ app.post('/updateFolder', (req, res) => {
     console.log('updated!');
   });
 
-  var start = (update.query.path + '/').replace('//', '/');
-  var inFolder = new RegExp('^' + start + update.query.fileName);
-
-  File.find({path: inFolder}, function(err, files) {
-    for (var file of files) {
-      console.log(file.path);
-      var newPath = file.path.replace(start + update.query.fileName, start + update.update.fileName);
-      file.path = newPath;
-      file.save();
-    }
+  if (update.type == 'folder') {
+    var start = (update.query.path + '/').replace('//', '/');
+    var inFolder = new RegExp('^' + start + update.query.fileName);
+  
+    File.find({path: inFolder}, function(err, files) {
+      for (var file of files) {
+        console.log(file.path);
+        var newPath = file.path.replace(start + update.query.fileName, start + update.update.fileName);
+        file.path = newPath;
+        file.save();
+      }
+      return res.json({oldName: update.query.fileName, newName: update.update.fileName});
+    })
+  }
+  else {
     return res.json({oldName: update.query.fileName, newName: update.update.fileName});
-  })
+  }
 })
 
 app.get('/getDocuments', async (req, res) => {

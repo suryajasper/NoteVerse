@@ -55,6 +55,7 @@ body {
   cursor: pointer;
   transition: 0.25s;
   color: black;
+  position: relative;
 }
 
 .elementDiv:hover {
@@ -78,8 +79,20 @@ body {
 }
 
 .elementDiv .elementTitle {
-  color: inherit;
+  flex: 1 1 auto;
+  position: relative;
+  font-size: inherit;
+  font-family: inherit;
+  background: transparent;
+  width: 70%;
+  border: 1px solid #dedede;
+  border-radius: 3px;
   font-size: 1em;
+}
+
+.elementDiv .elementTitle:disabled {
+  border: none;
+  cursor: pointer;
 }
 
 .elementInfo {
@@ -141,6 +154,10 @@ body {
 .folderDivOuter {
   display: flex;
   padding: 7px;
+}
+
+.elementDivOuter {
+  display: flex;
 }
 
 .folderDiv {

@@ -1,8 +1,6 @@
 import m from 'mithril'
 import styles from '../explorer.css';
 
-
-
 function Folder(vnode) {
   var hideElementEditButtons = true;
   var showNameInput = vnode.attrs.isNew;
@@ -10,11 +8,16 @@ function Folder(vnode) {
   var inputVal = vnode.attrs.fileName;
 
   function updateFileNameInServer() {
+    inputVal = inputVal.trim();
+    startName = startName.trim();
     console.log({
       path: vnode.attrs.path,
       fileName: inputVal,
       oldFileName: startName
     });
+    if (inputVal == startName) {
+      return;
+    }
     m.request({
       method: 'POST',
       url: 'http://localhost:2000/updateFolder',
@@ -23,6 +26,7 @@ function Folder(vnode) {
           path: vnode.attrs.path,
           fileName: startName
         },
+        type: 'folder',
         update: {
           fileName: inputVal,
         }
@@ -59,13 +63,18 @@ function Folder(vnode) {
             hideElementEditButtons = false;
           }, onmouseleave: function(e) {
             hideElementEditButtons = true;
-          }, onclick: function(e) {
-            if (e.shiftKey) {
-              showNameInput = true;
-            } else if (!showNameInput) {
+          }, ondblclick: function(e) {
+            if (!showNameInput) {
               var href = window.location.href;
               if (href.charAt(href.length-1) == '/') window.location.href += inputVal;
               else window.location.href += '/' + inputVal;
+            }
+          }, onclick: function(e) {
+            if (e.shiftKey) {
+              var inpField = this.parentNode.getElementsByTagName('input')[0];
+              showNameInput = true;
+              inpField.focus();
+              inpField.select();
             }
           }
         })

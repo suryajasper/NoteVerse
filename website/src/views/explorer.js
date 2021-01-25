@@ -3,6 +3,10 @@ import File from './file'
 import styles from '../explorer.css';
 import Folder from './folder';
 
+function removeAllFromArray(array) {
+  array.splice(0, array.length);
+}
+
 var Content = {
   lastPath: null,
   folders: [],
@@ -26,6 +30,7 @@ var Content = {
         if (element.isFile) self.files.push(element);
         else self.folders.push(element);
       }
+      m.redraw();
     }).catch(function(error) {
       window.location.href = '/notes#!/root/';
     })
@@ -41,7 +46,7 @@ var Explorer = {
   view: function(vnode) {
     if (vnode.attrs.path != Content.lastPath) {
       Content.lastPath = vnode.attrs.path;
-      console.log(Content.lastPath);
+      console.log('newPath', Content.lastPath);
       Content.fetch();
     }
     return [m('div', {className: `${styles.explorerContainer}`}, [
@@ -91,7 +96,10 @@ var Explorer = {
       m('p', {className: `${styles.elementTypeName}`}, 'Folders'),
       m('div', {className: `${styles.foldersView}`}, Content.folders.map(folderObj => m(Folder, folderObj))),
       m('p', {className: `${styles.elementTypeName}`}, 'Files'),
-      m('div', {className: `${styles.explorerContent}`}, Content.files.map(fileObj => m(File, fileObj)))
+      m('div', {className: `${styles.explorerContent}`}, Content.files.map(fileObj => {
+        // console.log('addingFile', fileObj);
+        return m(File, fileObj);
+      }))
     ])]
   }
 }
