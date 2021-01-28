@@ -3,6 +3,7 @@ import navbar from '../elements/navbar';
 import version from '../elements/version';
 import Canvas from './canvas';
 import Toolbar from './toolbar';
+import FeatureLayer from './feature';
 import styles from './editor.css';
 
 let editorState = {};
@@ -16,6 +17,7 @@ export default {
     return [m(navbar, m(version)),
       m(Toolbar, { updateState }),
       m('div', { class: styles.container },
-        m(Canvas, { editorState }))];
+        m(Canvas, { editorState }, m(FeatureLayer, { editorState }))),
+    ];
   },
 };

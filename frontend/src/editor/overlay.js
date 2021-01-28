@@ -8,6 +8,7 @@ const brushOverlay = () => {
     opacity: 1,
     cap: 'round',
     join: 'round',
+    isCanvasLevel: true,
   };
 
   const colors = [
@@ -41,8 +42,7 @@ const brushOverlay = () => {
           },
           style: `background-color: ${c}`,
         })),
-        m('div', { class: styles.psuedo }),
-      ),
+        m('div', { class: styles.psuedo })),
       ];
     },
   };
@@ -54,6 +54,7 @@ const eraserOverlay = () => {
     linewidth: 10,
     cap: 'round',
     join: 'round',
+    isCanvasLevel: true,
   };
 
   return {

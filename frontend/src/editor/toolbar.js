@@ -19,6 +19,7 @@ const toolStyles = [
     opacity: 1,
     cap: 'round',
     join: 'round',
+    isCanvasLevel: true,
   },
   {
     stroke: '#FFF',
@@ -26,6 +27,13 @@ const toolStyles = [
     opacity: 1,
     cap: 'round',
     join: 'round',
+    isCanvasLevel: true,
+  },
+  {
+    isCanvasLevel: false,
+  },
+  {
+    isCanvasLevel: false,
   },
 ];
 
@@ -65,6 +73,7 @@ export default class Toolbar {
   view(vnode) {
     vnode.attrs.updateState({
       tool: this.active,
+      isCanvasLevel: this.styles[this.active].isCanvasLevel,
       style: this.styles[this.active],
     });
 
