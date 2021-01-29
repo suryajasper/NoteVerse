@@ -3,12 +3,14 @@ import File from './file'
 import styles from '../explorer.css';
 import Folder from './folder';
 
+class Explorer {
+  constructor() {
+    this.lastPath = null;
+    this.folders = [];
+    this.files = [];
+  }
 
-var Content = {
-  lastPath: null,
-  folders: [],
-  files: [],
-  fetch: function() {
+  fetch() {
     var self = this;
     m.request({
       method: "GET",
@@ -32,19 +34,46 @@ var Content = {
       window.location.href = '/notes#!/root/';
     })
   }
-}
 
-var Explorer = {
-  oninit: function(vnode) {
-    console.log(vnode.attrs.path);
-    Content.lastPath = vnode.attrs.path;
-    Content.fetch();
-  },
-  view: function(vnode) {
-    if (vnode.attrs.path && vnode.attrs.path != Content.lastPath) {
-      Content.lastPath = vnode.attrs.path;
-      console.log('newPath', Content.lastPath);
-      Content.fetch();
+  oninit(vnode) {
+    this.lastPath = vnode.attrs.path;
+    this.fetch();
+  }
+
+  createFile() {
+    var date = new Date();
+    var newFileObj = {fileName: 'Note ' + date.toDateString() + ' ' + date.toTimeString(), dateModified: date, isNew: true};
+    this.files.push(newFileObj);
+    m.request({
+      method: 'POST',
+      url: 'http://localhost:2000/newDocument',
+      params: {
+        fileName: newFileObj.fileName,
+        uid: 'suryajasper',
+        path: vnode.attrs.path
+      }
+    });
+  }
+
+  createFolder() {
+    var date = new Date();
+    var newFolderObj = {fileName: 'New Folder', dateModified: date, isNew: true};
+    this.folders.push(newFolderObj);
+    m.request({
+      method: 'POST',
+      url: 'http://localhost:2000/newFolder',
+      params: {
+        fileName: newFolderObj.fileName,
+        uid: 'suryajasper',
+        path: vnode.attrs.path
+      }
+    });
+  }
+
+  view(vnode) {
+    if (vnode.attrs.path && vnode.attrs.path != this.lastPath) {
+      this.lastPath = vnode.attrs.path;
+      this.fetch();
     }
     return [m('div', {className: `${styles.explorerContainer}`}, [
       m('div', {className: `${styles.centerHorizontalContainer}`}, [
@@ -52,38 +81,12 @@ var Explorer = {
           m('div', {className: `${styles.dropdownDiv}`}, [
             m('button', {className: `${styles.dropdownButton}`}, 'Add'),
             m('div', {className: `${styles.dropdownContent}`}, [
-              m('div', {className: `${styles.dropdownElement}`, onclick: function() {
-                var date = new Date();
-                var newFileObj = {fileName: 'Note ' + date.toDateString() + ' ' + date.toTimeString(), dateModified: date, isNew: true};
-                Content.files.push(newFileObj);
-                m.request({
-                  method: 'POST',
-                  url: 'http://localhost:2000/newDocument',
-                  params: {
-                    fileName: newFileObj.fileName,
-                    uid: 'suryajasper',
-                    path: vnode.attrs.path
-                  }
-                });
-              }}, [
+              m('div', {className: `${styles.dropdownElement}`, onclick: this.createFile},
                 m('img', {src: '/src/images/File.svg'})
-              ]),
-              m('div', {className: `${styles.dropdownElement}`, onclick: function() {
-                var date = new Date();
-                var newFolderObj = {fileName: 'New Folder', dateModified: date, isNew: true};
-                Content.folders.push(newFolderObj);
-                m.request({
-                  method: 'POST',
-                  url: 'http://localhost:2000/newFolder',
-                  params: {
-                    fileName: newFolderObj.fileName,
-                    uid: 'suryajasper',
-                    path: vnode.attrs.path
-                  }
-                });
-              }}, [
+              ),
+              m('div', {className: `${styles.dropdownElement}`, onclick: this.createFolder},
                 m('img', {src: '/src/images/Folder.svg'})
-              ])
+              )
             ])
           ]),
           m('button', {className: `${styles.optionsMenuButton}`}, 'Share Settings'),
@@ -91,10 +94,10 @@ var Explorer = {
         ])
       ]),
       m('p', {className: `${styles.elementTypeName}`}, 'Folders'),
-      m('div', {className: `${styles.foldersView}`}, Content.folders.map(folderObj => m(Folder, folderObj))),
+      m('div', {className: `${styles.foldersView}`}, this.folders.map(folderObj => m(Folder, folderObj))),
       m('p', {className: `${styles.elementTypeName}`}, 'Files'),
-      m('div', {className: `${styles.explorerContent}`}, Content.files.map(fileObj => {
-        // console.log('addingFile', fileObj);
+      m('div', {className: `${styles.explorerContent}`}, this.files.map(fileObj => {
+        // console.log('addingFile', fileObj.fileName);
         return m(File, fileObj);
       }))
     ])]
