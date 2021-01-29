@@ -4,43 +4,47 @@ import styles from '../explorer.css';
 import Folder from './folder';
 
 class Explorer {
-  constructor() {
+  constructor(vnode) {
     this.lastPath = null;
     this.folders = [];
     this.files = [];
+    console.log('constructor', this.files);
   }
 
   fetch() {
-    var self = this;
     m.request({
       method: "GET",
       url: "http://localhost:2000/getDocuments",
       params: {
         uid: 'suryajasper',
-        path: self.lastPath
+        path: this.lastPath
       }
-    }).then(function(elements) {
-      console.log(elements);
+    }).then(elements => {
+      console.log('elements',elements);
       if (!elements) return;
-      self.files = [];
-      self.folders = [];
+      this.files = [];
+      console.log('updatedFiles', this.files.length);
+      this.folders = [];
       for (var element of elements) {
         element.isNew = false;
-        if (element.isFile) self.files.push(element);
-        else self.folders.push(element);
+        if (element.isFile) this.files.push(element);
+        else this.folders.push(element);
       }
+      console.log('afterFIles', this.files);
       m.redraw();
     }).catch(function(error) {
       window.location.href = '/notes#!/root/';
     })
   }
 
-  oninit(vnode) {
+  oncreate(vnode) {
+    console.log('ON INIT', vnode);
     this.lastPath = vnode.attrs.path;
     this.fetch();
   }
 
   createFile() {
+    console.log(this);
     var date = new Date();
     var newFileObj = {fileName: 'Note ' + date.toDateString() + ' ' + date.toTimeString(), dateModified: date, isNew: true};
     this.files.push(newFileObj);
@@ -50,7 +54,7 @@ class Explorer {
       params: {
         fileName: newFileObj.fileName,
         uid: 'suryajasper',
-        path: vnode.attrs.path
+        path: this.lastPath
       }
     });
   }
@@ -58,6 +62,7 @@ class Explorer {
   createFolder() {
     var date = new Date();
     var newFolderObj = {fileName: 'New Folder', dateModified: date, isNew: true};
+    console.log('getting folders', this.folders);
     this.folders.push(newFolderObj);
     m.request({
       method: 'POST',
@@ -65,7 +70,7 @@ class Explorer {
       params: {
         fileName: newFolderObj.fileName,
         uid: 'suryajasper',
-        path: vnode.attrs.path
+        path: this.lastPath
       }
     });
   }
@@ -75,16 +80,17 @@ class Explorer {
       this.lastPath = vnode.attrs.path;
       this.fetch();
     }
-    return [m('div', {className: `${styles.explorerContainer}`}, [
+    var files = this.files;
+    return m('div', {className: `${styles.explorerContainer}`}, [
       m('div', {className: `${styles.centerHorizontalContainer}`}, [
         m('div', {className: `${styles.centerHorizontalChild} ${styles.optionsMenu} ` }, [
           m('div', {className: `${styles.dropdownDiv}`}, [
             m('button', {className: `${styles.dropdownButton}`}, 'Add'),
             m('div', {className: `${styles.dropdownContent}`}, [
-              m('div', {className: `${styles.dropdownElement}`, onclick: this.createFile},
+              m('div', {className: `${styles.dropdownElement}`, onclick: () => this.createFile()},
                 m('img', {src: '/src/images/File.svg'})
               ),
-              m('div', {className: `${styles.dropdownElement}`, onclick: this.createFolder},
+              m('div', {className: `${styles.dropdownElement}`, onclick: () => this.createFolder()},
                 m('img', {src: '/src/images/Folder.svg'})
               )
             ])
@@ -96,11 +102,11 @@ class Explorer {
       m('p', {className: `${styles.elementTypeName}`}, 'Folders'),
       m('div', {className: `${styles.foldersView}`}, this.folders.map(folderObj => m(Folder, folderObj))),
       m('p', {className: `${styles.elementTypeName}`}, 'Files'),
-      m('div', {className: `${styles.explorerContent}`}, this.files.map(fileObj => {
+      m('div', {className: `${styles.explorerContent}`}, files.map(fileObj => {
         // console.log('addingFile', fileObj.fileName);
         return m(File, fileObj);
       }))
-    ])]
+    ])
   }
 }
 

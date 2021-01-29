@@ -61,12 +61,23 @@ body {
 .elementDiv:hover {
   background-color: #e8f0fe;
   transition: 0.25s;
+}
+.elementDiv:hover {
+  border-color: #4589e8;
+}
+
+.elementDiv:hover input {
   color: #1967d2;
 }
 
 .elementDiv:first-child {
   border-top: 1px solid gray;
 }
+
+.elementDiv:first-child:hover {
+  border-top-color: #4589e8;
+}
+
 
 .elementDiv .elementIconContainer {
   position: relative;
@@ -176,6 +187,10 @@ body {
 .folderDiv:hover {
   background-color: #e8f0fe;
   transition: 0.25s;
+  border-color: #4589e8;
+}
+
+.folderDiv:hover input {
   color: #1967d2;
 }
 
