@@ -3,9 +3,6 @@ import File from './file'
 import styles from '../explorer.css';
 import Folder from './folder';
 
-function removeAllFromArray(array) {
-  array.splice(0, array.length);
-}
 
 var Content = {
   lastPath: null,
@@ -44,7 +41,7 @@ var Explorer = {
     Content.fetch();
   },
   view: function(vnode) {
-    if (vnode.attrs.path != Content.lastPath) {
+    if (vnode.attrs.path && vnode.attrs.path != Content.lastPath) {
       Content.lastPath = vnode.attrs.path;
       console.log('newPath', Content.lastPath);
       Content.fetch();
