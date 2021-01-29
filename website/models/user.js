@@ -33,13 +33,9 @@ var userSchema = mongoose.Schema({
 userSchema.plugin(uniquePasswordValidator, {message: 'is already taken.'});
 
 userSchema.pre('save', function(next) {
-  console.log(this);
-  console.log('passwordinner', this.hash);
   this.salt = crypto.randomBytes(16).toString('hex');
-  console.log('saltinner', this.salt);
   this.hash = crypto.pbkdf2Sync(this.hash, this.salt, 10000, 512, 'sha512').toString('hex');
-  console.log('hashinner', this.hash);
-
+  
   next();
 });
 
