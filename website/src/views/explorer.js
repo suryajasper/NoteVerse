@@ -35,16 +35,15 @@ class Explorer {
   }
 
   oncreate(vnode) {
-    console.log('ON INIT', vnode);
     this.lastPath = vnode.attrs.path;
     this.fetch();
   }
-
+  
   createFile() {
     console.log(this);
     var date = new Date();
     var newFileObj = {fileName: 'Note ' + date.toDateString() + ' ' + date.toTimeString(), dateModified: date, isNew: true};
-    this.files.push(newFileObj);
+    // this.files.push(newFileObj);
     m.request({
       method: 'POST',
       url: 'http://localhost:2000/newDocument',
@@ -53,6 +52,8 @@ class Explorer {
         uid: 'suryajasper',
         path: this.lastPath
       }
+    }).then(res => {
+      this.fetch();
     });
   }
 
@@ -60,7 +61,7 @@ class Explorer {
     var date = new Date();
     var newFolderObj = {fileName: 'New Folder', dateModified: date, isNew: true};
     console.log('getting folders', this.folders);
-    this.folders.push(newFolderObj);
+    // this.folders.push(newFolderObj);
     m.request({
       method: 'POST',
       url: 'http://localhost:2000/newFolder',
@@ -69,6 +70,8 @@ class Explorer {
         uid: 'suryajasper',
         path: this.lastPath
       }
+    }).then(res => {
+      this.fetch();
     });
   }
 
@@ -96,12 +99,11 @@ class Explorer {
         ])
       ]),
       m('p', {className: `${styles.elementTypeName}`}, 'Folders'),
-      m('div', {className: `${styles.foldersView}`}, this.folders.map(folderObj => m(Folder, folderObj))),
+      m('div', {className: `${styles.foldersView}`}, this.folders.map(folderObj => m(Folder, {key: folderObj._id, file: folderObj}) )),
       m('p', {className: `${styles.elementTypeName}`}, 'Files'),
       m('div', {className: `${styles.explorerContent}`}, this.files.map(fileObj => {
-        console.log('addingFile', fileObj.fileName);
-        // m.redraw();
-        return m(File, {key: fileObj._id, file: fileObj});
+        if (!fileObj._id) return;
+        return m(File, {key: fileObj._id, file: fileObj}) 
       }))
     ])
   }

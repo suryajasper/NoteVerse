@@ -177,7 +177,7 @@ body {
   display: flex;
   flex: 1 1 auto;
   flex-direction: row;
-  overflow: hidden;
+  /*overflow: hidden;*/
   color: black;
   position: relative;
   transition: 0.25s;
@@ -220,6 +220,40 @@ body {
 .folderDiv .folderTitle:disabled {
   border: none;
   cursor: pointer;
+}
+
+.folderDiv .overflowContainer {
+  position: absolute;
+  display: none;
+  width: 20px;
+  right: 8px;
+  top: 12px;
+  padding: 4px;
+  border-radius: 50%;
+  z-index: 9999;
+}
+
+.folderDiv:hover .overflowContainer {
+  display: block;
+}
+
+.overflowContainer {
+  transition: 0.5s;
+}
+
+.overflowContainer:hover {
+  background-color: rgba(179, 179, 179, 0.45);
+  transition: 0.5s;
+}
+
+.overflowDiv {
+  z-index: 9999;
+  position: absolute;
+  top: 50%;
+  right: 0;
+  background: black;
+  width: 50px;
+  height: 250px;
 }
 
 .elementTypeName {
