@@ -20,17 +20,14 @@ class Explorer {
         path: this.lastPath
       }
     }).then(elements => {
-      console.log('elements',elements);
       if (!elements) return;
       this.files = [];
-      console.log('updatedFiles', this.files.length);
       this.folders = [];
       for (var element of elements) {
         element.isNew = false;
         if (element.isFile) this.files.push(element);
         else this.folders.push(element);
       }
-      console.log('afterFIles', this.files);
       m.redraw();
     }).catch(function(error) {
       window.location.href = '/notes#!/root/';
@@ -80,7 +77,6 @@ class Explorer {
       this.lastPath = vnode.attrs.path;
       this.fetch();
     }
-    var files = this.files;
     return m('div', {className: `${styles.explorerContainer}`}, [
       m('div', {className: `${styles.centerHorizontalContainer}`}, [
         m('div', {className: `${styles.centerHorizontalChild} ${styles.optionsMenu} ` }, [
@@ -102,9 +98,10 @@ class Explorer {
       m('p', {className: `${styles.elementTypeName}`}, 'Folders'),
       m('div', {className: `${styles.foldersView}`}, this.folders.map(folderObj => m(Folder, folderObj))),
       m('p', {className: `${styles.elementTypeName}`}, 'Files'),
-      m('div', {className: `${styles.explorerContent}`}, files.map(fileObj => {
-        // console.log('addingFile', fileObj.fileName);
-        return m(File, fileObj);
+      m('div', {className: `${styles.explorerContent}`}, this.files.map(fileObj => {
+        console.log('addingFile', fileObj.fileName);
+        // m.redraw();
+        return m(File, {key: fileObj._id, file: fileObj});
       }))
     ])
   }
