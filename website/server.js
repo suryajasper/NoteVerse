@@ -165,8 +165,6 @@ app.get('/getDocuments', async (req, res) => {
     return res.json(allDocs);
   }
 
-  console.log('if this prints, god is dead');
-
   return res.status(401).send('could not find location');
 
 

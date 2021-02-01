@@ -194,7 +194,7 @@ body {
   color: #1967d2;
 }
 
-.folderDiv .folderItemContainer {
+.folderItemContainer {
   flex: 0 0 auto;
   padding-top: 16px;
   padding-bottom: 16px;
@@ -202,7 +202,7 @@ body {
   padding-right: 8px;
 }
 
-.folderDiv .folderItemContainer:first-child {
+.folderItemContainer:first-child {
   padding-left: 16px;
 }
 
@@ -230,7 +230,7 @@ body {
   top: 12px;
   padding: 4px;
   border-radius: 50%;
-  z-index: 9999;
+  z-index: 10;
 }
 
 .folderDiv:hover .overflowContainer {
@@ -289,4 +289,37 @@ span.ripple {
     transform: scale(4);
     opacity: 0;
   }
+}
+
+.contextMenuDiv {
+  background-color: white;
+  position: absolute;
+  width: 200px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  border-radius: 4px;
+  border: 2px solid black;
+  z-index: 9999;
+}
+
+.contextMenuList {
+  list-style: none;
+  padding-left: 0px;
+}
+
+.contextMenuList li {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: row;
+  padding: 4px;
+  cursor: pointer;
+}
+
+.contextMenuList li * {
+  -moz-user-select: none;
+  -webkit-user-select: none;
+}
+
+.contextMenuList li:hover {
+  background-color: #d9d9d9;
 }

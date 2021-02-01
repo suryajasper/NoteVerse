@@ -8,6 +8,8 @@ class Explorer {
     this.lastPath = null;
     this.folders = [];
     this.files = [];
+    this.contextMenu = {};
+    this.selectedNode = null;
     console.log('constructor', this.files);
   }
 
@@ -37,6 +39,12 @@ class Explorer {
   oncreate(vnode) {
     this.lastPath = vnode.attrs.path;
     this.fetch();
+    this.contextMenu = {
+      x: 0,
+      y: 0,
+      hidden: 'none'
+    }
+    console.log('oncreate', this.contextMenu);
   }
   
   createFile() {
@@ -75,36 +83,75 @@ class Explorer {
     });
   }
 
+  updateContext(action, e, selectedNode) {
+    if (action == 'show') {
+      console.log('selectedNode =', selectedNode);
+      this.selectedNode = selectedNode;
+      var rect = e.target.getBoundingClientRect();
+      this.contextMenu.hidden = 'block';
+      this.contextMenu.x = e.clientX + window.scrollX;
+      this.contextMenu.y = e.clientY + window.scrollY;
+      console.log(this.contextMenu);
+    } else if (action == 'hide') {
+      console.log('bruh');
+      this.contextMenu.hidden = 'none';
+    }
+  }
+
   view(vnode) {
     if (vnode.attrs.path && vnode.attrs.path != this.lastPath) {
+      console.log('fetching');
       this.lastPath = vnode.attrs.path;
       this.fetch();
     }
-    return m('div', {className: `${styles.explorerContainer}`}, [
-      m('div', {className: `${styles.centerHorizontalContainer}`}, [
-        m('div', {className: `${styles.centerHorizontalChild} ${styles.optionsMenu} ` }, [
-          m('div', {className: `${styles.dropdownDiv}`}, [
-            m('button', {className: `${styles.dropdownButton}`}, 'Add'),
-            m('div', {className: `${styles.dropdownContent}`}, [
-              m('div', {className: `${styles.dropdownElement}`, onclick: () => this.createFile()},
+    return m('div', {class: `${styles.explorerContainer}`}, [
+      m('div', {class: `${styles.centerHorizontalContainer}`}, [
+        m('div', {class: `${styles.centerHorizontalChild} ${styles.optionsMenu} ` }, [
+          m('div', {class: `${styles.dropdownDiv}`}, [
+            m('button', {class: `${styles.dropdownButton}`}, 'Add'),
+            m('div', {class: `${styles.dropdownContent}`}, [
+              m('div', {class: `${styles.dropdownElement}`, onclick: () => this.createFile()},
                 m('img', {src: '/src/images/File.svg'})
               ),
-              m('div', {className: `${styles.dropdownElement}`, onclick: () => this.createFolder()},
+              m('div', {class: `${styles.dropdownElement}`, onclick: () => this.createFolder()},
                 m('img', {src: '/src/images/Folder.svg'})
               )
             ])
           ]),
-          m('button', {className: `${styles.optionsMenuButton}`}, 'Share Settings'),
-          m('button', {className: `${styles.optionsMenuButton}`}, 'Remove Folder')
+          m('button', {class: `${styles.optionsMenuButton}`, onclick: e => {
+            this.updateContext('show', e);
+          }}, 'Share Settings'),
+          m('button', {class: `${styles.optionsMenuButton}`}, 'Remove Folder')
         ])
       ]),
-      m('p', {className: `${styles.elementTypeName}`}, 'Folders'),
-      m('div', {className: `${styles.foldersView}`}, this.folders.map(folderObj => m(Folder, {key: folderObj._id, file: folderObj}) )),
-      m('p', {className: `${styles.elementTypeName}`}, 'Files'),
-      m('div', {className: `${styles.explorerContent}`}, this.files.map(fileObj => {
+      m('p', {class: `${styles.elementTypeName}`}, 'Folders'),
+      m('div', {class: `${styles.foldersView}`}, this.folders.map(folderObj => m(Folder, {key: folderObj._id, file: folderObj, updateContext: (act, e, g) => {this.updateContext(act, e, g);}}) )),
+      m('p', {class: `${styles.elementTypeName}`}, 'Files'),
+      m('div', {class: `${styles.explorerContent}`}, this.files.map(fileObj => {
         if (!fileObj._id) return;
         return m(File, {key: fileObj._id, file: fileObj}) 
-      }))
+      })),
+      m('div', {class: styles.contextMenuDiv, style: `left: ${this.contextMenu.x}px; top: ${this.contextMenu.y}px; display: ${this.contextMenu.hidden}`}, [
+        m('ul', {class: styles.contextMenuList}, [
+          m('li', {onclick: () => {
+            console.log(this.selectedNode);
+            if (this.selectedNode) {
+              this.selectedNode.rename();
+            }
+          }}, [
+            m('div', {class: styles.folderItemContainer}, m('img', {style: 'width: 24px; height: 24px', src: '/src/images/Edit.svg'})),
+            m('div', {class: styles.folderItemContainer}, m('span', 'Rename'))
+          ]),
+          m('li', [
+            m('div', {class: styles.folderItemContainer}, m('img', {style: 'width: 24px; height: 24px', src: '/src/images/Delete.svg'})),
+            m('div', {class: styles.folderItemContainer}, m('span', 'Remove'))
+          ]),
+          m('li', [
+            m('div', {class: styles.folderItemContainer}, m('img', {style: 'width: 24px; height: 24px', src: '/src/images/Share.svg'})),
+            m('div', {class: styles.folderItemContainer}, m('span', 'Share'))
+          ])
+        ])
+      ])
     ])
   }
 }
