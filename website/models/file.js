@@ -4,7 +4,7 @@ var FileSchema = mongoose.Schema({
   authorUID: String,
   isFile: Boolean,
   fileName: String,
-  path: String,
+  parentFolderId: String,
   dateAdded: Date,
   dateModified: Date
 });

@@ -5,12 +5,16 @@ import Folder from './folder';
 
 class Explorer {
   constructor(vnode) {
-    this.lastPath = null;
+    this.parentFolderId = vnode.attrs.folderId;
     this.folders = [];
     this.files = [];
-    this.contextMenu = {};
+    this.contextMenu = {
+      x: 0,
+      y: 0,
+      hidden: 'none'
+    }
     this.selectedNode = null;
-    console.log('constructor', this.files);
+    console.log('constructor', this.parentFolderId);
   }
 
   fetch() {
@@ -19,7 +23,7 @@ class Explorer {
       url: "http://localhost:2000/getDocuments",
       params: {
         uid: 'suryajasper',
-        path: this.lastPath
+        parentFolderId: this.parentFolderId
       }
     }).then(elements => {
       if (!elements) return;
@@ -37,7 +41,6 @@ class Explorer {
   }
 
   oncreate(vnode) {
-    this.lastPath = vnode.attrs.path;
     this.fetch();
     this.contextMenu = {
       x: 0,
@@ -58,7 +61,7 @@ class Explorer {
       params: {
         fileName: newFileObj.fileName,
         uid: 'suryajasper',
-        path: this.lastPath
+        parentFolderId: this.parentFolderId
       }
     }).then(res => {
       this.fetch();
@@ -76,7 +79,7 @@ class Explorer {
       params: {
         fileName: newFolderObj.fileName,
         uid: 'suryajasper',
-        path: this.lastPath
+        parentFolderId: this.parentFolderId
       }
     }).then(res => {
       this.fetch();
@@ -99,9 +102,8 @@ class Explorer {
   }
 
   view(vnode) {
-    if (vnode.attrs.path && vnode.attrs.path != this.lastPath) {
-      console.log('fetching');
-      this.lastPath = vnode.attrs.path;
+    if (vnode.attrs.folderId && vnode.attrs.folderId != this.parentFolderId) {
+      this.parentFolderId = vnode.attrs.folderId;
       this.fetch();
     }
     return m('div', {class: `${styles.explorerContainer}`}, [
@@ -125,7 +127,14 @@ class Explorer {
         ])
       ]),
       m('p', {class: `${styles.elementTypeName}`}, 'Folders'),
-      m('div', {class: `${styles.foldersView}`}, this.folders.map(folderObj => m(Folder, {key: folderObj._id, file: folderObj, updateContext: (act, e, g) => {this.updateContext(act, e, g);}}) )),
+      m('div', {class: `${styles.foldersView}`}, 
+        this.folders.map(folderObj => m(Folder, {
+          key: folderObj._id,
+          file: folderObj, 
+          updateContext: (act, e, g) => {this.updateContext(act, e, g);}, 
+          refresh: () => {this.fetch();}
+        }) )
+      ),
       m('p', {class: `${styles.elementTypeName}`}, 'Files'),
       m('div', {class: `${styles.explorerContent}`}, this.files.map(fileObj => {
         if (!fileObj._id) return;
@@ -142,7 +151,11 @@ class Explorer {
             m('div', {class: styles.folderItemContainer}, m('img', {style: 'width: 24px; height: 24px', src: '/src/images/Edit.svg'})),
             m('div', {class: styles.folderItemContainer}, m('span', 'Rename'))
           ]),
-          m('li', [
+          m('li', {onclick: () => {
+            if (this.selectedNode) {
+              this.selectedNode.remove();
+            }
+          }}, [
             m('div', {class: styles.folderItemContainer}, m('img', {style: 'width: 24px; height: 24px', src: '/src/images/Delete.svg'})),
             m('div', {class: styles.folderItemContainer}, m('span', 'Remove'))
           ]),

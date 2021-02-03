@@ -80,7 +80,7 @@ app.post('/newDocument', (req, res) => {
     isFile: true,
     fileName: docInfo.fileName,
     authorUID: docInfo.uid,
-    path: docInfo.path,
+    parentFolderId: docInfo.parentFolderId,
     dateCreated: new Date(),
     dateModified: new Date()
   });
@@ -98,7 +98,7 @@ app.post('/newFolder', (req, res) => {
     isFile: false,
     fileName: folderInfo.fileName,
     authorUID: folderInfo.uid,
-    path: folderInfo.path,
+    parentFolderId: folderInfo.parentFolderId,
     dateCreated: new Date(),
     dateModified: new Date()
   });
@@ -116,24 +116,22 @@ app.post('/updateFolder', (req, res) => {
   File.updateOne(update.query, update.update).then(function(result) {
     console.log('updated!');
   });
-
-  if (update.type == 'folder') {
-    var start = (update.query.path + '/').replace('//', '/');
-    var inFolder = new RegExp('^' + start + update.query.fileName);
   
-    File.find({path: inFolder}, function(err, files) {
-      for (var file of files) {
-        console.log(file.path);
-        var newPath = file.path.replace(start + update.query.fileName, start + update.update.fileName);
-        file.path = newPath;
-        file.save();
-      }
-      return res.json({oldName: update.query.fileName, newName: update.update.fileName});
-    })
-  }
-  else {
-    return res.json({oldName: update.query.fileName, newName: update.update.fileName});
-  }
+  return res.json({oldName: update.query.fileName, newName: update.update.fileName});
+})
+
+app.post('/deleteFile', (req, res) => {
+  var query = req.query;
+
+  console.log('delete', query);
+
+  if (!query) return res.sendStatus(400);
+
+  File.findByIdAndDelete(query.idToDelete, function(err) {
+    if (err) return res.status(400).send(err.message);
+
+    return res.status(200);
+  });
 })
 
 app.get('/getDocuments', async (req, res) => {
@@ -145,29 +143,29 @@ app.get('/getDocuments', async (req, res) => {
 
   var allDocs = await File.find({
     authorUID: pathInfo.uid,
-    path: pathInfo.path
+    parentFolderId: pathInfo.parentFolderId
   }).exec();
 
   if (allDocs.length > 0) {
     return res.json(allDocs);
   }
 
-  console.log(pathInfo.path.substring(0, pathInfo.path.lastIndexOf('/')));
-
-  var inNewFolder = await File.findOne({
-    authorUID: pathInfo.uid,
-    isFile: false,
-    path: pathInfo.path.substring(0, pathInfo.path.lastIndexOf('/')),
-    fileName: pathInfo.path.substring(pathInfo.path.lastIndexOf('/')+1)
-  });
-
-  if (inNewFolder) {
+  if (pathInfo.parentFolderId == 'root') {
+    console.log('-- in root');
     return res.json(allDocs);
+  } else {
+    var inNewFolder = await File.findOne({
+      authorUID: pathInfo.uid,
+      isFile: false,
+      _id: pathInfo.parentFolderId
+    });
+  
+    if (inNewFolder) {
+      return res.json(allDocs);
+    }
   }
 
   return res.status(401).send('could not find location');
-
-
 })
 
 app.post('/addCollaborator', async (req, res) => {

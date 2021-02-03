@@ -5,10 +5,24 @@ import Element from './element';
 class Folder extends Element {
   constructor(vnode) {
     super(vnode);
+    this.refresh = vnode.attrs.refresh;
   }
 
   rename() {
     this.showNameInput = true;
+  }
+
+  remove() {
+    m.request({
+      method: 'POST',
+      url: 'http://localhost:2000/deleteFile',
+      params: {
+        idToDelete: this.fileId
+      }
+    }).then((res) => {
+      console.log(res);
+      this.refresh();
+    });
   }
   
   view(vnode) {
@@ -37,9 +51,7 @@ class Folder extends Element {
             if (e.shiftKey) {
               this.rename();
             } else if (!this.showNameInput) {
-              var href = window.location.href;
-              if (href.charAt(href.length-1) == '/') window.location.href += this.inputVal;
-              else window.location.href += '/' + this.inputVal;
+              window.location.href = `/#1/notes/${this.fileId}`;
             }
           }, oncontextmenu: e => {
             e.preventDefault();

@@ -7,7 +7,8 @@ class Element {
     this.showNameInput = vnode.attrs.file.isNew;
     this.startName = vnode.attrs.file.fileName;
     this.inputVal = vnode.attrs.file.fileName;
-    this.path = vnode.attrs.file.path;
+    this.parentFolderId = vnode.attrs.file.parentFolderId;
+    this.fileId = vnode.attrs.key;
   }
   
   updateFileNameInServer() {
@@ -16,8 +17,7 @@ class Element {
       url: 'http://localhost:2000/updateFolder',
       params: {
         query: {
-          path: this.path,
-          fileName: this.startName
+          _id: this.fileId
         },
         type: 'file',
         update: {

@@ -3,7 +3,7 @@ import Explorer from './views/explorer';
 import {Login, Signup} from './views/login';
 
 m.route(document.body, "/notes/root", {
-  "/notes/:path...": Explorer,
+  "/notes/:folderId": Explorer,
   '/login': Login,
   '/signup': Signup
 });
