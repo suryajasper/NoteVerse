@@ -14,7 +14,6 @@ var userSchema = mongoose.Schema({
     lowercase: true,
     trim: true,
     required: [true, "can't be blank"],
-    match: [/^[a-zA-Z0-9]+$/, 'is invalid'],
     index: true
   },
   email: {

@@ -25,33 +25,38 @@ var db = mongoose.connection;
 
 
 app.post('/createUser', (req, res) => {
-  if (!(req.body && req.body.username && req.body.email && req.body.password)) return res.status(400).send('no data');
-  User.findOne({email: req.body.email}, (err, document) => {
+  if (!(req.query && req.query.username && req.query.email && req.query.password)) return res.status(400).send('no data');
+  User.findOne({email: req.query.email}, (err, document) => {
     if (err) return res.send(err);
     if (document != null) return res.status(400).send('email address already taken');
-    console.log('passouter', req.body.password);
+    console.log('passouter', req.query.password);
     console.log('good unique address');
     var user = new User({
-      username: req.body.username,
-      email: req.body.email,
-      hash: req.body.password
+      username: req.query.username,
+      email: req.query.email,
+      hash: req.query.password
     });
-    // user.setPassword(req.body.password);
+    // user.setPassword(req.query.password);
     user.save().then(function(newRes) {
       console.log('salt', newRes.salt);
       console.log('email', newRes.email);
-      res.status(300).send('user successfully created');
+      res.json({uid: newRes._id});
     });
   })
 });
 
 app.post('/authenticateUser', (req, res) => {
-  if (!(req.body && req.body.password && (req.body.username || req.body.email))) return res.status(400).send('no data');
-  User.findOne({email: req.body.email}, (err, document) => {
-    if (!document || err) return res.status(401).send('could not find user');
-    if (document.isValidPassword(req.body.password)) {
-      return res.status(200).send('valid password');
+  console.log('login', req.query);
+  if (!(req.query && req.query.password && req.query.email)) return res.status(400).send('no data');
+  User.findOne({email: req.query.email}, (err, document) => {
+    if (!document || err) {
+      console.log('no user found');
+      return res.status(401).send('could not find user');
+    }
+    if (document.isValidPassword(req.query.password)) {
+      return res.json({uid: document._id});
     } else {
+      console.log('invalid password');
       return res.status(400).send('invalid password');
     }
   })
@@ -169,12 +174,12 @@ app.get('/getDocuments', async (req, res) => {
 })
 
 app.post('/addCollaborator', async (req, res) => {
-  var collabInfo = req.body;
+  var collabInfo = req.query;
   if (!collabInfo) {
     return res.status(400).send('missing query');
   }
 
-  var userInfo = await User.findOne({email: req.body.email});
+  var userInfo = await User.findOne({email: req.query.email});
   if (userInfo == null) return res.status(400).send('no user with matching credentials');
 
   var docInfo = await Document.findOne(collabInfo.docId);
