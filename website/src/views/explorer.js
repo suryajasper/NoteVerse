@@ -1,10 +1,12 @@
 import m from 'mithril'
 import File from './file'
 import styles from '../explorer.css';
+import Cookies from '../utils/cookies';
 import Folder from './folder';
 
 class Explorer {
   constructor(vnode) {
+    this.uid = Cookies.get('uid');
     this.parentFolderId = vnode.attrs.folderId;
     this.folders = [];
     this.files = [];
@@ -22,7 +24,7 @@ class Explorer {
       method: "GET",
       url: "http://localhost:2000/getDocuments",
       params: {
-        uid: 'suryajasper',
+        uid: this.uid,
         parentFolderId: this.parentFolderId
       }
     }).then(elements => {
@@ -41,6 +43,9 @@ class Explorer {
   }
 
   oncreate(vnode) {
+    if (!Cookies.get('uid')) {
+      window.location.href = '/#!/login';
+    }
     this.fetch();
     this.contextMenu = {
       x: 0,
@@ -60,7 +65,7 @@ class Explorer {
       url: 'http://localhost:2000/newDocument',
       params: {
         fileName: newFileObj.fileName,
-        uid: 'suryajasper',
+        uid: this.uid,
         parentFolderId: this.parentFolderId
       }
     }).then(res => {
@@ -78,7 +83,7 @@ class Explorer {
       url: 'http://localhost:2000/newFolder',
       params: {
         fileName: newFolderObj.fileName,
-        uid: 'suryajasper',
+        uid: this.uid,
         parentFolderId: this.parentFolderId
       }
     }).then(res => {
@@ -121,7 +126,8 @@ class Explorer {
             ])
           ]),
           m('button', {class: `${styles.optionsMenuButton}`, onclick: e => {
-            this.updateContext('show', e);
+            // this.updateContext('show', e);
+            Cookies.erase('uid');
           }}, 'Share Settings'),
           m('button', {class: `${styles.optionsMenuButton}`}, 'Remove Folder')
         ])
