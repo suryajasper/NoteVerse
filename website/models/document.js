@@ -6,20 +6,6 @@ var documentSchema = mongoose.Schema({
   authorUID: String,
   dateCreated: Date,
   dateLastEdited: Date,
-  visibility: {
-    type: String,
-    enum: ['private', 'restricted', 'public'],
-    default: 'restricted' 
-  },
-  userPermissions: [{
-    authorUID: String,
-    editingMode: {
-      type: String,
-      enum: ['viewing', 'suggesting', 'editing'],
-      default: 'editing'
-    },
-    canShare: Boolean
-  }],
   actionQueue: [Action],
   theme: {
     backgroundColor: String,

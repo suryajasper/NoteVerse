@@ -1,9 +1,10 @@
+
 const Cookies = {
-  set: function(name,value,days) {
+  set: function(name,value,hours) {
     var expires = "";
-    if (days) {
+    if (hours) {
         var date = new Date();
-        date.setTime(date.getTime() + (days*24*60*60*1000));
+        date.setTime(date.getTime() + (hours*60*60*1000));
         expires = "; expires=" + date.toUTCString();
     }
     document.cookie = name + "=" + (value || "")  + expires + "; path=/";

@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const uniquePasswordValidator = require('mongoose-unique-validator');
 const crypto = require('crypto');
+const { ObjectID } = require('mongodb');
 // const jwt = require('jsonwebtoken');
 // const secret = require('../config').secret;
 
@@ -24,6 +25,7 @@ var userSchema = mongoose.Schema({
     match: [/\S+@\S+\.\S+/, 'is invalid'],
     index: true
   },
+  previousCollaborators: [ObjectID],
   hash: String,
   profilePic: String,
   salt: String

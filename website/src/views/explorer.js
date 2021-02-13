@@ -93,13 +93,10 @@ class Explorer {
 
   updateContext(action, e, selectedNode) {
     if (action == 'show') {
-      console.log('selectedNode =', selectedNode);
       this.selectedNode = selectedNode;
-      var rect = e.target.getBoundingClientRect();
       this.contextMenu.hidden = 'block';
       this.contextMenu.x = e.clientX + window.scrollX;
       this.contextMenu.y = e.clientY + window.scrollY;
-      console.log(this.contextMenu);
     } else if (action == 'hide') {
       console.log('bruh');
       this.contextMenu.hidden = 'none';
@@ -144,7 +141,13 @@ class Explorer {
       m('p', {class: `${styles.elementTypeName}`}, 'Files'),
       m('div', {class: `${styles.explorerContent}`}, this.files.map(fileObj => {
         if (!fileObj._id) return;
-        return m(File, {key: fileObj._id, file: fileObj}) 
+        return m(File, {
+          key: fileObj._id, 
+          file: fileObj,
+          updateContext: (act, e, g) => {this.updateContext(act, e, g);}, 
+          refresh: () => {this.fetch();},
+          remove: () => {this.files = this.files.filter(el => el != fileObj); console.log(this.files); m.redraw();}
+        }) 
       })),
       m('div', {class: styles.contextMenuDiv, style: `left: ${this.contextMenu.x}px; top: ${this.contextMenu.y}px; display: ${this.contextMenu.hidden}`}, [
         m('ul', {class: styles.contextMenuList}, [
