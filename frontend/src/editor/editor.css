@@ -34,5 +34,21 @@
 .textbox {
   position: absolute;
   background-color: unset;
-  border: 2px solid #333;
+  border: 1px dashed red;
+}
+
+.textfield {
+  /* position: relative; */
+  border: 1px solid grey;
+}
+
+.resize_handle {
+  position: relative;
+  /* top: -10px; */
+  /* right: -10px; */
+  right: 10px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid blue;
+  border-radius: 5px;
 }

@@ -16,6 +16,7 @@ export default class Canvas {
   }
 
   oncreate(vnode) {
+    this.target = vnode.dom;
     this.initSize = {
       width: vnode.dom.clientWidth,
       height: vnode.dom.clientHeight,
@@ -43,7 +44,13 @@ export default class Canvas {
 
   handleToolDown(e) {
     this.state.drawing = true;
-    this.state.lastPos = makePoint(getRelativeMousePosition(e, this.scale));
+    const f = {
+      target: this.target,
+      clientX: e.clientX,
+      clientY: e.clientY,
+    };
+
+    this.state.lastPos = makePoint(getRelativeMousePosition(f, this.scale));
 
     this.currIdle = 0;
 
@@ -66,7 +73,13 @@ export default class Canvas {
   }
 
   handleToolDrag(e) {
-    const pos = makePoint(getRelativeMousePosition(e, this.scale));
+    const f = {
+      target: this.target,
+      clientX: e.clientX,
+      clientY: e.clientY,
+    };
+
+    const pos = makePoint(getRelativeMousePosition(f, this.scale));
 
     const vel = Math.sqrt(
       (pos.x - this.state.lastPos.x) ** 2 + (pos.y - this.state.lastPos.y) ** 2,
