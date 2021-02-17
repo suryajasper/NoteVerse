@@ -1,6 +1,7 @@
 import m from 'mithril'
 import styles from '../explorer.css';
 import Element from './element';
+import {createRipple} from '../utils/dom';
 
 class File extends Element {
   constructor(vnode) {
@@ -43,12 +44,13 @@ class File extends Element {
         }},
           m('img', {src: '/src/images/Overflow.svg'})
         ),
-        m('div', {style: "position:absolute; left:0; right:0; top:0; bottom:0;", tabindex: '0', hidden: this.showNameInput,
+        m('div', {style: "position:absolute; left:0; right:0; top:0; bottom:0;", class: styles.rippleButton, tabindex: '0', hidden: this.showNameInput,
           onmouseenter: (e) => {
             this.hideElementEditButtons = false;
           }, onmouseleave: (e) => {
             this.hideElementEditButtons = true;
           }, onclick: (e) => {
+            createRipple(e, styles, 'rgba(201, 201, 201, 0.7)');
             if (e.shiftKey) {
               this.showNameInput = true;
             } else if (!this.showNameInput) {

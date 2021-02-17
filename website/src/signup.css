@@ -297,7 +297,7 @@ form.signupform button {
   transition: color 0.2s;
 }
 
-form.signupform button:hover, button:focus {
+form.signupform button:hover, form.signupform button:focus {
   color: #111;
 }
 

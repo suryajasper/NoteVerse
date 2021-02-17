@@ -13,6 +13,7 @@ var FileSchema = mongoose.Schema({
   },
   userPermissions: [{
     authorUID: String,
+    username: String,
     editingMode: {
       type: String,
       enum: ['viewing', 'editing'],

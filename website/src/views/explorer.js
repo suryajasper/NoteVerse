@@ -3,6 +3,7 @@ import File from './file'
 import styles from '../explorer.css';
 import Cookies from '../utils/cookies';
 import Folder from './folder';
+import { SharePopup } from './popup';
 
 class Explorer {
   constructor(vnode) {
@@ -14,9 +15,14 @@ class Explorer {
       x: 0,
       y: 0,
       hidden: 'none'
-    }
+    };
     this.selectedNode = null;
-    console.log('constructor', this.parentFolderId);
+    this.shareSettings = {
+      suggestions: [],
+      applicableSuggestions: [],
+      contributors: [],
+      sharePopupVisible: false
+    };
   }
 
   fetch() {
@@ -103,6 +109,124 @@ class Explorer {
     }
   }
 
+  fetchSuggestions() {
+    console.log(this.uid, 'fetch');
+    this.shareSettings.sharePopupVisible = false;
+    m.request({
+      method: "GET",
+      url: "http://localhost:2000/getPreviousCollaborators",
+      params: {
+        uid: this.uid
+      }
+    }).then(names => {
+      for (var i = 0; i < names.length; i++) {
+        names[i] = (({ _id, username }) => ({ _id, username }))(names[i]);
+      }
+      
+      this.shareSettings.suggestions = names;
+    }).catch(err => {
+      console.log(err);
+    })
+  }
+
+  loadUsername(e, name) {
+    var username = (name) ? name: e.target.value;
+
+    if (username == '') return;
+    if (this.shareSettings.contributors.includes(username)) return;
+
+    m.request({
+      method: "GET",
+      url: "http://localhost:2000/getUser",
+      params: {
+        uid: this.uid,
+        query: {
+          username: username
+        }
+      }
+    }).then(userRes => {
+      let formattedContributor = (({ username }) => ({ username }))(userRes);
+      formattedContributor.authorUID = userRes._id;
+      formattedContributor.editingMode = 'editing';
+      formattedContributor.canShare = true;
+      this.shareSettings.contributors.push(formattedContributor);
+      e.target.value = '';
+    }).catch(err => {
+      e.target.value = '';
+    })
+  }
+
+  clearSuggestions() {
+    this.shareSettings.applicableSuggestions = [];
+  }
+
+  loadSuggestions(e) {
+    if (!this.shareSettings.suggestions || this.shareSettings.suggestions.length == 0) return;
+    
+    this.clearSuggestions();
+    for (var suggestion of this.shareSettings.suggestions) {
+      if (suggestion.username.toLowerCase().includes(e.target.value.toLowerCase().trim()) &&
+          this.getIndexById(suggestion._id) < 0) {
+        this.shareSettings.applicableSuggestions.push(suggestion);
+      }
+    }
+  }
+
+  getIndexById(id) {
+    for (var i = 0; i < this.shareSettings.contributors.length; i++) {
+      if (this.shareSettings.contributors[i].authorUID === id) {
+        return i;
+      }
+    }
+    return -1;
+  }
+  
+  updateContributor(id, data) {
+    let ind = this.getIndexById(id);
+    Object.assign(this.shareSettings.contributors[ind], data);
+  }
+  
+  removeContributor(id) {
+    let ind = this.getIndexById(id);
+    this.shareSettings.contributors.splice(ind, 1);
+  }
+  
+  loadContributors() {
+    console.log('selectednode', this.selectedNode?.fileId);
+    m.request({
+      method: "GET",
+      url: "http://localhost:2000/getCollaborators",
+      params: {
+        fileId: this.selectedNode?.fileId
+      }
+    }).then(collaboratorRes => {
+      this.shareSettings.contributors = collaboratorRes;
+      this.shareSettings.sharePopupVisible = true;
+      m.redraw();
+    }).catch(err => {
+      console.log(err);
+      console.log('no contributors');
+    })
+  }
+
+  saveContributors() {
+    console.log('saving', this.shareSettings.contributors);
+    m.request({
+      method: 'POST',
+      url: 'http://localhost:2000/updateCollaborators',
+      params: {
+        uid: this.uid,
+        fileId: this.selectedNode?.fileId,
+        collaborators: this.shareSettings.contributors        
+      }
+    }).then((res) => {
+      console.log('shared', res);
+      this.shareSettings.sharePopupVisible = false;
+    }).catch(err => {
+      console.log('error saving contributors', err);
+    });
+  }
+
   view(vnode) {
     if (vnode.attrs.folderId && vnode.attrs.folderId != this.parentFolderId) {
       this.parentFolderId = vnode.attrs.folderId;
@@ -168,12 +292,33 @@ class Explorer {
             m('div', {class: styles.folderItemContainer}, m('img', {style: 'width: 24px; height: 24px', src: '/src/images/Delete.svg'})),
             m('div', {class: styles.folderItemContainer}, m('span', 'Remove'))
           ]),
-          m('li', [
+          m('li', {onclick: () => {
+            this.fetchSuggestions();
+            this.loadContributors();
+          }}, [
             m('div', {class: styles.folderItemContainer}, m('img', {style: 'width: 24px; height: 24px', src: '/src/images/Share.svg'})),
             m('div', {class: styles.folderItemContainer}, m('span', 'Share'))
           ])
         ])
-      ])
+      ]),
+      m(SharePopup, {
+        title: 'Share',
+
+        suggestions: this.shareSettings.applicableSuggestions,
+        contributors: this.shareSettings.contributors,
+        fileId: this.selectedNode?.fileId,
+        isVisible: this.shareSettings.sharePopupVisible,
+        
+        hide:               ()          =>  {this.shareSettings.sharePopupVisible = false;},
+        removeContributor:  id          =>  this.removeContributor(id),
+        updateContributor:  (id, data)  =>  this.updateContributor(id, data),
+        getIndexById:       id          =>  this.getIndexById(id),
+        loadSuggestions:    e           =>  this.loadSuggestions(e),
+        clearSuggestions:   ()          =>  this.clearSuggestions(),
+        loadUsername:       (e, name)   =>  this.loadUsername(e, name),
+        fetchSuggestions:   ()          =>  this.fetchSuggestions(),
+        saveContributors:   ()          =>  this.saveContributors()
+      })
     ])
   }
 }

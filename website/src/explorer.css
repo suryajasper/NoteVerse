@@ -222,7 +222,7 @@ body {
   cursor: pointer;
 }
 
-.folderDiv .overflowContainer {
+.overflowContainer {
   position: absolute;
   display: none;
   width: 20px;
@@ -234,6 +234,14 @@ body {
 }
 
 .folderDiv:hover .overflowContainer {
+  display: block;
+}
+
+.folderDiv:hover .overflowContainer  {
+  display: block;
+}
+
+.elementDiv:hover .overflowContainer {
   display: block;
 }
 
@@ -260,20 +268,9 @@ body {
   font-size: 1.25em;
 }
 
-button.rippleButton {
+.rippleButton {
   position: relative;
   overflow: hidden;
-  transition: background 400ms;
-  color: #fff;
-  background-color: #000;
-  padding: 1rem 2rem;
-  font-family: 'Roboto', sans-serif;
-  font-size: 1.5rem;
-  outline: 0;
-  border: 0;
-  border-radius: 0.25rem;
-  box-shadow: 0 0 0.5rem rgba(0, 0, 0, 0.3); /* black with 30% opacity */
-  cursor: pointer;
 }
 
 span.ripple {
@@ -295,10 +292,11 @@ span.ripple {
   background-color: white;
   position: absolute;
   width: 200px;
-  padding-top: 8px;
-  padding-bottom: 8px;
+  padding-top: 3px;
+  padding-bottom: 3px;
   border-radius: 4px;
-  border: 2px solid black;
+  border-top-left-radius: 0px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
   z-index: 9999;
 }
 
@@ -316,8 +314,14 @@ span.ripple {
 }
 
 .contextMenuList li * {
+  user-select: none;
   -moz-user-select: none;
   -webkit-user-select: none;
+}
+
+.contextMenuList li .folderItemContainer {
+  padding-top: 6px;
+  padding-bottom: 6px;
 }
 
 .contextMenuList li:hover {

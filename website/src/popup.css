@@ -1,0 +1,183 @@
+.centered {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.popupDiv {
+  width: 60vw;
+  max-width: 600px;
+  min-height: 300px;
+  padding: 12px;
+  background-color: white;
+  border-radius: 4px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 9999;
+}
+
+.popupDiv .popupCancel {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  padding: 4px;
+  outline: none;
+  border: none;
+  background: none;
+  border-radius: 25%;
+  transition: 0.25s;
+}
+
+.popupDiv .popupCancel:hover {
+  background-color: #85858561;
+  transition: 0.25s;
+}
+
+.popupDiv h2 {
+  margin-top: 0px;
+}
+
+.popupDiv input[type=text] {
+  outline: none;
+  padding: 16px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  border-radius: 2px;
+  border-bottom-left-radius: 0px;
+  border-bottom-right-radius: 0px;
+  background-color: rgb(219, 219, 219);
+  width: 60%;
+  font-size: inherit;
+  border: none;
+}
+
+.popupContent {
+  min-height: 200px;
+}
+
+.popupContent .sharePopupInput .sharePopupSuggestDiv {
+  position: absolute;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  border-radius: 2px;
+  border-top-left-radius: 0px;
+  border-top-right-radius: 0px;
+  z-index: 9999;
+  background-color: rgb(240, 240, 240);
+  width: calc(60% + 18px);
+  font-size: inherit;
+}
+
+.sharePopupSuggestEl {
+  padding: 4px;
+  padding-left: 16px;
+  padding-right: 16px;
+  border-bottom: 1px solid rgb(209, 209, 209);
+  user-select: none;
+  cursor: pointer;
+}
+
+.sharePopupSuggestEl:hover {
+  background-color: rgb(209, 209, 209);
+}
+
+.sharePopupSuggestEl:last-child {
+  border-bottom: none;
+  padding-bottom: none;
+}
+
+.popupDiv .popupConfirm {
+  position: relative;
+  left: 12px;
+  bottom: 12px;
+  padding: 16px;
+  margin-left: 0;
+  margin-top: 5px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  cursor: pointer;
+  color: white;
+  background-color: rgb(37, 212, 154);
+  font-size: 1.15rem;
+  outline: none;
+  border: none;
+  border-radius: 2px;
+  transition: 0.3s ease-out;
+}
+
+.popupDiv .popupConfirm:hover {
+  box-shadow: 0px 3px 6px 0px rgba(0,0,0,0.2);
+  transition: 0.3s ease-out;
+}
+
+.shareDiv {
+  list-style-type: none;
+  padding-left: 0px;
+  width: 100%;
+}
+
+.shareDiv li {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: row;
+  position: relative;
+  padding-top: 16px;
+  padding-bottom: 16px;
+  padding-left: 8px;
+  position: relative;
+  width: 100%;
+}
+
+.shareDiv li .shareUserOptions .showOnHover {
+  display: none;
+}
+
+.shareDiv li:hover .shareUserOptions .showOnHover {
+  display: inline;
+}
+
+.shareDiv li p {
+  width: 50%;
+  padding: 4px;
+  margin: 0;
+  text-overflow: clip;
+}
+
+.shareDiv li .shareUserOptions {
+  position: absolute;
+  right: 4px;
+}
+
+.shareDiv li:hover {
+  background-color: rgb(245, 245, 245);
+}
+
+.shareDiv li img {
+  border-radius: 50%;
+  padding: 4px;
+  cursor: pointer;
+}
+
+.shareDiv li img:hover {
+  background-color: rgb(222, 222, 222);
+}
+
+button.rippleButton {
+  position: relative;
+  overflow: hidden;
+}
+
+span.ripple {
+  position: absolute;
+  border-radius: 50%;
+  transform: scale(0);
+  animation: ripple 600ms linear;
+  background-color: rgba(255, 255, 255, 0.7);
+}
+
+@keyframes ripple {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}

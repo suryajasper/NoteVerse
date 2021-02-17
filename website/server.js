@@ -25,6 +25,7 @@ var db = mongoose.connection;
 
 
 app.post('/createUser', (req, res) => {
+  console.log('newuser', req.query);
   if (!(req.query && req.query.username && req.query.email && req.query.password)) return res.status(400).send('no data');
   User.findOne({email: req.query.email}, (err, document) => {
     if (err) return res.send(err);
@@ -38,8 +39,7 @@ app.post('/createUser', (req, res) => {
     });
     // user.setPassword(req.query.password);
     user.save().then(function(newRes) {
-      console.log('salt', newRes.salt);
-      console.log('email', newRes.email);
+      console.log(`${req.query.username} registered with email ${req.query.email}`);
       res.json({uid: newRes._id});
     });
   })
@@ -192,10 +192,6 @@ app.post('/addCollaborator', async (req, res) => {
   return res.status(200);
 })
 
-app.post('/updateCollaborator', (req, res) => {
-  
-})
-
 app.get('/document', (req, res) => {
   if (req.query && req.query.name) {    
     db.collection('documents').findOne({name: req.query.name}, (err, document) => {
@@ -207,7 +203,7 @@ app.get('/document', (req, res) => {
   }
 })
 
-app.get('getUser', (req, res) => {
+app.get('/getUser', (req, res) => {
   User.findOne(req.query.query, (err, document) => {
     if (err) return res.status(404).send('no such user found');
     else {
@@ -216,9 +212,13 @@ app.get('getUser', (req, res) => {
   });
 })
 
-app.get('getPreviousCollaborators', async (req, res) => {
-  var userInfo = await User.findOne({_id: req.query.uid}).exec();
-  if (!userInfo) return res.status(400);
+app.get('/getPreviousCollaborators', async (req, res) => {
+  console.log('bruh', req.query);
+  var userInfo = await User.findById(req.query.uid).exec();
+  if (!userInfo) {
+    console.log('wrong credentials');
+    return res.status(400);
+  }
 
   var collaborators = [];
   for (var collaboratorId of userInfo.previousCollaborators) {
@@ -228,36 +228,79 @@ app.get('getPreviousCollaborators', async (req, res) => {
   return res.json(collaborators);
 })
 
-app.post('updateCollaborators', async (req, res) => {
+app.get('/getCollaborators', async (req, res) => {
+  console.log('hi');
+  var fileInfo = await File.findById(req.query.fileId);
+  if (!fileInfo) {
+    console.log('/getCOllaborators', 'no file found');
+    return res.status(400).send('no such file');
+  }
+
+  console.log('shoot', fileInfo.userPermissions);
+
+  if (fileInfo.userPermissions)
+    return res.json(fileInfo.userPermissions);
+  return res.json([]);
+})
+
+app.post('/updateCollaborators', async (req, res) => {
   var userInfo = await User.findById(req.query.uid).exec();
   if (!userInfo) return res.status(400).send('wrong uid');
 
   var fileInfo = await File.findById(req.query.fileId).exec();
   if (!fileInfo) return res.status(400).send('no file');
 
+  
   var currCollabIds = [];
   for (var userPerm of fileInfo.userPermissions) {
     currCollabIds.push(userPerm.authorUID);
   }
 
-  for (var collaborator of req.query.colalborators) {
-    var perms = {
-      authorUID: collaborator.uid,
+  console.log('updating collaborators', currCollabIds, req.query.collaborators);
+
+  let resUIDs = [];
+
+  for (var i = 0; i < req.query.collaborators.length; i++) {
+    let collaborator = req.query.collaborators[i];
+    /*var perms = {
+      authorUID: collaborator.authorUID,
       editingMode: collaborator.editingMode,
       canShare: collaborator.canShare
-    };
+    };*/
+    resUIDs.push(collaborator.authorUID);
 
-    if (!currCollabIds.includes(collaborator.uid)) {
-      await File.updateOne({_id: req.fileId}, {$addToSet: {userPermissions: perms}}).exec();
+    console.log(`[${i}/${req.query.collaborators.length}] started update`);
+    
+    if (!currCollabIds.includes(collaborator.authorUID)) {
+      console.log(`[${i}/${req.query.collaborators.length}] doesn't exist updating`);
+      await File.updateOne({_id: req.query.fileId}, {$addToSet: {userPermissions: collaborator}}).exec();
+      console.log(`[${i}/${req.query.collaborators.length}] doesn't exist updated`);
     } else {
-      await File.updateOne({_id: req.fileId, userPermissions: {authorUID: collaborator.uid}}, {$set: {userPermissions: perms}}).exec();
+      console.log(`[${i}/${req.query.collaborators.length}] already exists updating`);
+      await File.updateOne({_id: req.query.fileId, 'userPermissions.authorUID': collaborator.authorUID}, {$set: {
+        'userPermissions.$.editingMode': collaborator.editingMode,
+        'userPermissions.$.canShare': collaborator.canShare
+      }}).exec();
+      console.log(`[${i}/${req.query.collaborators.length}] already exists updated`);
     }
-
-    await User.updateOne({_id: req.query.uid}, {$addToSet: {previousCollaborators: collaborator.uid}}).exec();
-    await User.updateOne({_id: collaborator.uid}, {$addToSet: {previousCollaborators: req.query.uid}}).exec();
+    
+    console.log(`[${i}/${req.query.collaborators.length}] updating previous collaborators`);
+    await User.updateOne({_id: req.query.uid}, {$addToSet: {previousCollaborators: collaborator.authorUID}}).exec();
+    await User.updateOne({_id: collaborator.authorUID}, {$addToSet: {previousCollaborators: req.query.uid}}).exec();
+    console.log(`[${i}/${req.query.collaborators.length}] updated previous collaborators`);
   }
 
-  return res.status(300);  
+  let idsToRemove = currCollabIds.filter(el => !resUIDs.includes(el));
+  for (var toRemove of idsToRemove) {
+    await File.updateOne({_id: req.query.fileId}, {$pull: {
+      userPermissions: {
+        authorUID: toRemove
+      }
+    }}).exec();
+  }
+  
+  console.log('completed!');
+  return res.status(200).json({good: true});  
 })
 
 io.on('connection', socket => {
