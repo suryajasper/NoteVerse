@@ -7,8 +7,7 @@ export default class Textbox {
     this.dim = vnode.attrs.dim;
     this.pos = vnode.attrs.pos;
     this.id = vnode.attrs.id;
-
-    this.movable = true;
+    this.selected = false;
     this.editing = false;
 
     this.updateRules = [...Array(4).keys()].map((i) => {
@@ -25,13 +24,16 @@ export default class Textbox {
         };
         const pos = getRelativeMousePosition(f, 1);
 
+        const xqty = this.pos.x - pos.x;
+        const yqty = this.pos.y - pos.y;
+
         this.dim = {
-          x: (this.pos.x - pos.x) + this.dim.x,
-          y: (this.pos.y - pos.y) + this.dim.y,
+          x: x ? -xqty : xqty + this.dim.x,
+          y: y ? -yqty : yqty + this.dim.y,
         };
         this.pos = {
-          x: pos.x,
-          y: pos.y,
+          x: x ? this.pos.x : pos.x,
+          y: y ? this.pos.y : pos.y,
         };
         m.redraw();
       }).bind(this);
@@ -52,6 +54,8 @@ export default class Textbox {
   }
 
   view(vnode) {
+    const resizeStyles = [styles.tl, styles.tr, styles.bl, styles.br];
+
     this.selected = false;
     if (vnode.attrs.getFocus() !== undefined) {
       this.selected = vnode.attrs.getFocus() === this.id;
@@ -64,6 +68,7 @@ export default class Textbox {
         marginLeft: `${this.pos.x}px`,
         marginTop: `${this.pos.y}px`,
       },
+      onselectstart: () => this.movable,
       onmousedown: (e) => {
         e.stopPropagation();
         if (this.selected) {
@@ -76,14 +81,14 @@ export default class Textbox {
       },
       class: styles.textbox,
     },
-    [...Array(1).keys()].map((i) => m(
+    [...Array(4).keys()].map((i) => m(
       'div', {
         onmousedown: (e) => {
           document.activeElement.blur();
           vnode.dom.parentNode.addEventListener('pointermove', this.updateRules[i]);
           e.stopPropagation();
         },
-        class: styles.resize_handle,
+        class: `${styles.resize_handle} ${resizeStyles[i]}`,
         style: {
           display: `${this.selected ? 'block' : 'none'}`,
         },
@@ -93,6 +98,7 @@ export default class Textbox {
       class: `${styles.textfield} ${this.selected ? styles.sel_border : ''}`,
       contenteditable: true,
       onselectstart: () => this.editing,
+      spellcheck: this.editing,
     }));
   }
 }

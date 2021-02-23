@@ -48,6 +48,10 @@ export default class FeatureLayer {
       onmousedown: (e) => {
         if (!this.editorState.isCanvasLevel) {
           e.stopPropagation();
+          if (this.selectedID !== undefined) {
+            this.selectedID = undefined;
+            return;
+          }
           this.target = vnode.dom;
           this.insertTextBox(e);
           return;
