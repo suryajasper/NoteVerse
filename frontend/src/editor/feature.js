@@ -7,6 +7,15 @@ export default class FeatureLayer {
   constructor() {
     this.features = [];
     this.state = {};
+    this.selectedID = undefined;
+  }
+
+  setFocus(id) {
+    this.selectedID = id;
+  }
+
+  getFocus() {
+    return this.selectedID;
   }
 
   insertTextBox(e) {
@@ -16,13 +25,18 @@ export default class FeatureLayer {
       clientY: e.clientY,
     };
 
+    const params = {
+      pos: getRelativeMousePosition(f, 1),
+      dim: { x: 200, y: 40 },
+      setFocus: this.setFocus.bind(this),
+      getFocus: this.getFocus.bind(this),
+      id: this.features.length,
+    };
+
+    this.setFocus(params.id);
     this.features.push({
       elem: Textbox,
-      params: {
-        pos: getRelativeMousePosition(f, 1),
-        dim: { width: 200, height: 40 },
-        // default width/height of textboxes
-      },
+      params,
     });
   }
 
@@ -36,7 +50,9 @@ export default class FeatureLayer {
           e.stopPropagation();
           this.target = vnode.dom;
           this.insertTextBox(e);
+          return;
         }
+        this.selectedID = undefined;
       },
     }, this.features.map((feature) => m(feature.elem, feature.params)));
   }
