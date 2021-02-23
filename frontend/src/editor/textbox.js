@@ -14,6 +14,7 @@ export default class Textbox {
     this.moveStep = {};
 
     this.handleMove = this.handleMove.bind(this);
+    this.removeMouseEvent = this.removeMouseEvent.bind(this);
 
     this.updateRules = [...Array(4).keys()].map((i) => {
       /* eslint-disable */
@@ -40,19 +41,33 @@ export default class Textbox {
     });
   }
 
+  removeMouseEvent() {
+    this.updateRules.forEach((k, i) => {
+      this.target.parentNode.removeEventListener('pointermove', this.updateRules[i]);
+      this.target.parentNode.removeEventListener('pointermove', this.handleMove);
+    });
+  }
+
   oncreate(vnode) {
     vnode.dom.focus();
     this.target = vnode.dom;
-    this.updateRules.forEach((k, i) => {
-      vnode.dom.parentNode.addEventListener('mouseup', () => {
-        vnode.dom.parentNode.removeEventListener('pointermove', this.updateRules[i]);
-        vnode.dom.parentNode.removeEventListener('pointermove', this.handleMove);
-      });
-      vnode.dom.parentNode.addEventListener('mouseleave', () => {
-        vnode.dom.parentNode.removeEventListener('pointermove', this.updateRules[i]);
-        vnode.dom.parentNode.removeEventListener('pointermove', this.handleMove);
-      });
-    });
+    vnode.dom.parentNode.addEventListener('mouseup', this.removeMouseEvent);
+    vnode.dom.parentNode.addEventListener('mouseleave', this.removeMouseEvent);
+
+    // currently only delete events
+    const handleExternalKeypress = (e) => {
+      if (e.code !== 'Backspace') return;
+      if (this.selected && !this.editing) {
+        vnode.dom.parentNode.removeEventListener('mouseup', this.removeMouseEvent);
+        vnode.dom.parentNode.removeEventListener('mouseleave', this.removeMouseEvent);
+
+        vnode.attrs.setFocus(undefined);
+        vnode.attrs.delete(this.id);
+        window.removeEventListener('keydown', handleExternalKeypress);
+        m.redraw();
+      }
+    };
+    window.addEventListener('keydown', handleExternalKeypress);
   }
 
   handleMoveStart(e) {
@@ -87,10 +102,12 @@ export default class Textbox {
       },
       onselectstart: () => this.movable,
       onmousedown: (e) => {
-        e.stopPropagation();
-        this.handleMoveStart(e);
-        vnode.dom.parentNode.addEventListener('pointermove', this.handleMove);
-        vnode.attrs.setFocus(this.id);
+        if (!vnode.attrs.editorState.isCanvasLevel) {
+          e.stopPropagation();
+          this.handleMoveStart(e);
+          vnode.dom.parentNode.addEventListener('pointermove', this.handleMove);
+          vnode.attrs.setFocus(this.id);
+        }
       },
       ondblclick: () => {
         if (this.selected) {
@@ -118,6 +135,12 @@ export default class Textbox {
     m('div', {
       class: `${styles.textfield} ${this.selected ? styles.sel_border : ''}`,
       contenteditable: true,
+      onkeydown: (e) => {
+        if (e.code === 'Escape') {
+          vnode.dom.lastChild.blur();
+          this.editing = false;
+        }
+      },
       onfocus: () => {
         if (!this.editing) {
           vnode.dom.lastChild.blur();

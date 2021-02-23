@@ -11,17 +11,17 @@
 .textbox {
   position: absolute;
   background-color: unset;
-  border: 1px dashed red;
 }
 
 .textfield {
   width: calc(100% - 6px);
   height: calc(100% - 6px);
   padding: 3px;
+  overflow: hidden;
   color: #333;
+  background-color: transparent;
   border: 1px solid #fff0;
   outline: none;
-  /* cursor: default; */
 }
 
 .sel_border {

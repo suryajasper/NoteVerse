@@ -27,7 +27,7 @@ export default class FeatureLayer {
 
     const params = {
       pos: getRelativeMousePosition(f, 1),
-      dim: { x: 200, y: 40 },
+      dim: { x: 200, y: 32 },
       setFocus: this.setFocus.bind(this),
       getFocus: this.getFocus.bind(this),
       id: this.features.length,
@@ -38,6 +38,14 @@ export default class FeatureLayer {
       elem: Textbox,
       params,
     });
+  }
+
+  removeTextBox(id) {
+    for (let i = 0; i < this.features.length; i += 1) {
+      if (this.features[i].params.id === id) {
+        this.features.splice(i, 1);
+      }
+    }
   }
 
   view(vnode) {
@@ -58,6 +66,7 @@ export default class FeatureLayer {
         }
         this.selectedID = undefined;
       },
-    }, this.features.map((feature) => m(feature.elem, feature.params)));
+    }, this.features.map((feature) => m(feature.elem,
+      { ...feature.params, delete: this.removeTextBox.bind(this), editorState: vnode.attrs.editorState })));
   }
 }

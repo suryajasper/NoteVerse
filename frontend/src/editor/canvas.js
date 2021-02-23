@@ -43,6 +43,7 @@ export default class Canvas {
   }
 
   handleToolDown(e) {
+    document.body.style.cursor = 'crosshair';
     this.state.drawing = true;
     const f = {
       target: this.target,
@@ -73,6 +74,7 @@ export default class Canvas {
   }
 
   handleToolDrag(e) {
+    // window.style.cursor = 'default';
     const f = {
       target: this.target,
       clientX: e.clientX,
@@ -103,6 +105,7 @@ export default class Canvas {
   }
 
   handleToolUp() {
+    document.body.style.cursor = 'default';
     this.state.drawing = false;
     clearTimeout(this.idleTimeout);
 
