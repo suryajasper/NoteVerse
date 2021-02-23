@@ -1,0 +1,63 @@
+.textbox,
+.textfield {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.textbox {
+  position: absolute;
+  background-color: unset;
+  border: 1px dashed red;
+}
+
+.textfield {
+  width: calc(100% - 6px);
+  height: calc(100% - 6px);
+  padding: 3px;
+  color: #333;
+  border: 1px solid #fff0;
+  outline: none;
+  /* cursor: default; */
+}
+
+.sel_border {
+  border: 1px solid #333;
+}
+
+.resize_handle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background-color: #fff;
+  border: 1px solid #333;
+  border-radius: 10px;
+  cursor: crosshair;
+}
+
+.movable {
+  cursor: move;
+}
+
+.tr {
+  top: -6px;
+  right: -6px;
+}
+
+.tl {
+  top: -6px;
+  left: -6px;
+}
+
+.br {
+  right: -6px;
+  bottom: -6px;
+}
+
+.bl {
+  bottom: -6px;
+  left: -6px;
+}

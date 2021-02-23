@@ -15,7 +15,17 @@ function makePoint(pos) {
   return v;
 }
 
+function getTrueMousePosition(e, target, scale) {
+  const f = {
+    target,
+    clientX: e.clientX,
+    clientY: e.clientY,
+  };
+  return getRelativeMousePosition(f, scale);
+}
+
 export {
   getRelativeMousePosition,
   makePoint,
+  getTrueMousePosition,
 };

@@ -1,14 +1,19 @@
 import m from 'mithril';
-import styles from './editor.css';
-import { getRelativeMousePosition } from './util';
+import styles from './textbox.css';
+import { getTrueMousePosition } from './util';
 
 export default class Textbox {
   constructor(vnode) {
     this.dim = vnode.attrs.dim;
     this.pos = vnode.attrs.pos;
     this.id = vnode.attrs.id;
+
     this.selected = false;
     this.editing = false;
+
+    this.moveStep = {};
+
+    this.handleMove = this.handleMove.bind(this);
 
     this.updateRules = [...Array(4).keys()].map((i) => {
       /* eslint-disable */
@@ -17,12 +22,7 @@ export default class Textbox {
       /* eslint-enable */
 
       return (function updateRule(e) {
-        const f = {
-          target: this.target.parentNode,
-          clientX: e.clientX,
-          clientY: e.clientY,
-        };
-        const pos = getRelativeMousePosition(f, 1);
+        const pos = getTrueMousePosition(e, this.target.parentNode, 1);
 
         const xqty = this.pos.x - pos.x;
         const yqty = this.pos.y - pos.y;
@@ -46,11 +46,28 @@ export default class Textbox {
     this.updateRules.forEach((k, i) => {
       vnode.dom.parentNode.addEventListener('mouseup', () => {
         vnode.dom.parentNode.removeEventListener('pointermove', this.updateRules[i]);
+        vnode.dom.parentNode.removeEventListener('pointermove', this.handleMove);
       });
       vnode.dom.parentNode.addEventListener('mouseleave', () => {
         vnode.dom.parentNode.removeEventListener('pointermove', this.updateRules[i]);
+        vnode.dom.parentNode.removeEventListener('pointermove', this.handleMove);
       });
     });
+  }
+
+  handleMoveStart(e) {
+    this.moveStep = getTrueMousePosition(e, this.target.parentNode, 1);
+  }
+
+  handleMove(e) {
+    if (this.editing) return;
+    const pos = getTrueMousePosition(e, this.target.parentNode, 1);
+    this.pos = {
+      x: this.pos.x - (this.moveStep.x - pos.x),
+      y: this.pos.y - (this.moveStep.y - pos.y),
+    };
+    this.moveStep = pos;
+    m.redraw();
   }
 
   view(vnode) {
@@ -71,20 +88,24 @@ export default class Textbox {
       onselectstart: () => this.movable,
       onmousedown: (e) => {
         e.stopPropagation();
+        this.handleMoveStart(e);
+        vnode.dom.parentNode.addEventListener('pointermove', this.handleMove);
+        vnode.attrs.setFocus(this.id);
+      },
+      ondblclick: () => {
         if (this.selected) {
           this.editing = true;
         }
-        vnode.attrs.setFocus(this.id);
+        vnode.dom.lastChild.focus();
       },
       onfocusout: () => {
         this.editing = false;
       },
-      class: styles.textbox,
+      class: `${styles.textbox} ${this.selected && !this.editing ? styles.movable : ''}`,
     },
     [...Array(4).keys()].map((i) => m(
       'div', {
         onmousedown: (e) => {
-          document.activeElement.blur();
           vnode.dom.parentNode.addEventListener('pointermove', this.updateRules[i]);
           e.stopPropagation();
         },
@@ -97,8 +118,12 @@ export default class Textbox {
     m('div', {
       class: `${styles.textfield} ${this.selected ? styles.sel_border : ''}`,
       contenteditable: true,
-      onselectstart: () => this.editing,
-      spellcheck: this.editing,
+      onfocus: () => {
+        if (!this.editing) {
+          vnode.dom.lastChild.blur();
+        }
+      },
+      spellcheck: false,
     }));
   }
 }
