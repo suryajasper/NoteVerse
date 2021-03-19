@@ -271,7 +271,8 @@ class Explorer {
             // this.updateContext('show', e);
             Cookies.erase('uid');
           }}, 'Share Settings'),
-          m('button', {class: `${styles.optionsMenuButton}`}, 'Remove Folder')
+          m('button', {class: `${styles.optionsMenuButton}`}, 'Remove Folder'),
+          m('button', {class: `${styles.optionsMenuButton}`}, 'Edit Profile')
         ])
       ]),
       m('p', {class: `${styles.elementTypeName}`}, 'Folders'),
