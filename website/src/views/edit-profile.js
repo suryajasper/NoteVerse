@@ -1,5 +1,6 @@
 import m from 'mithril'
 import styles from '../signup.css';
+import mainImage from './profileimage.png';
 
 export default function EditProfile() {
     return {
@@ -7,7 +8,7 @@ export default function EditProfile() {
             return [m('form', {class:styles.signupform}, [
              m('h1', 'Profile Picture'),
              m('div', {class:'profile-pic-div'}),
-             m('img', {src:'profileimage.png'}),
+             m('img', {src: mainImage }),
              m('h2', 'Edit Username:'), 
              m('input', {"placeholder":"New Username"}),
              m('input', {'type':'Submit', 'value':'Save Changes'})
