@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 var Point = mongoose.Schema({
   x: Number,
-  Y: Number
+  y: Number
 })
 
 var Transform = mongoose.Schema({

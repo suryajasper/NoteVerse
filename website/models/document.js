@@ -4,6 +4,7 @@ var {Point, Transform, Action} = require('./elements');
 var documentSchema = mongoose.Schema({
   name: String,
   authorUID: String,
+  pointerToFile: String,
   dateCreated: Date,
   dateLastEdited: Date,
   actionQueue: [Action],
@@ -25,9 +26,8 @@ var documentSchema = mongoose.Schema({
     strokes: [{
       authorUID: String,
       transform: Transform,
-      color: String,
-      points: [Point],
-      thickness: [Number]
+      style: Object,
+      points: [Point]
     }]
   }]
 })

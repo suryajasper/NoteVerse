@@ -3,25 +3,37 @@ const bodyParser = require('body-parser');
 const app = express();
 app.use(express.static(__dirname + '/client'));
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:8812');
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
   res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept');
   next();
 });
 app.use(bodyParser.urlencoded({ extended: true }));
 const http = require('http').createServer(app);
-const io = require('socket.io')(http);
+const io = require('socket.io')(http, {
+  cors: {
+    origin: '*',
+  }
+});
 const port = process.env.PORT || 2000;
 
 const mongoose = require('mongoose');
 const User = require('./models/user');
 const Document = require('./models/document');
 const File = require('./models/file');
-const { deprecate } = require('util');
 
 const uri = "mongodb+srv://nanocheck:iPNNEole7FRCFplF@noteversecluster.oxlnj.mongodb.net/documents";
 mongoose.connect(uri, { useUnifiedTopology: true, useNewUrlParser: true });
-var db = mongoose.connection;
+let db = mongoose.connection;
+
+function findPropertyInArray(array, property, value) {
+  for (let i = 0; i < array.length; i++) {
+    if (array[i].property == value) {
+      return i;
+    }
+  }
+  return -1;
+}
 
 /**
  * Sign up new user
@@ -38,7 +50,7 @@ app.post('/createUser', (req, res) => {
     if (document != null) return res.status(400).send('email address already taken');
     console.log('passouter', req.query.password);
     console.log('good unique address');
-    var user = new User({
+    let user = new User({
       username: req.query.username,
       email: req.query.email,
       hash: req.query.password
@@ -75,63 +87,63 @@ app.post('/authenticateUser', (req, res) => {
 })
 
 /**
- * Creates new note document for the given user
- * @param authorUUID: author's UUID
- * @param fileName
- * @param parentFolderId: _id of folder containing the new file
- */
-app.post('/newDocument', (req, res) => {
-  var docInfo = req.query;
-  console.log('new document params', req.query);
-  if (!docInfo) {
-    return res.sendStatus(400);
-  }
-  var docSetup = new Document({
-    name: docInfo.fileName,
-    authorUID: docInfo.uid,
-    dateCreated: new Date(),
-    dateLastEdited: new Date(),
-    visibility: 'restricted',
-    userPermissions: [{
-      authorUID: docInfo.uid,
-      editingMode: 'editing',
-      canShare: true
-    }]
-  });
-  docSetup.save();
-  var fileSetup = new File({
-    isFile: true,
-    fileName: docInfo.fileName,
-    authorUID: docInfo.uid,
-    parentFolderId: docInfo.parentFolderId,
-    dateCreated: new Date(),
-    dateModified: new Date()
-  });
-  fileSetup.save();
-  res.status(201).send('added document');
-})
-
-/**
  * Creates new folder for the given user
  * @param uid: author's UUID
  * @param fileName: name of new folder
  * @param parentFolderId: _id of folder containing the new folder
  */
-app.post('/newFolder', (req, res) => {
-  var folderInfo = req.query;
+app.post('/newFile', async (req, res) => {
+  let fileInfo = req.query;
   console.log(req.query);
-  if (!folderInfo) {
+  if (!fileInfo) {
     return res.sendStatus(400);
   }
-  var folderSetup = new File({
-    isFile: false,
-    fileName: folderInfo.fileName,
-    authorUID: folderInfo.uid,
-    parentFolderId: folderInfo.parentFolderId,
+
+  let fileObj = {
+    isFile: fileInfo.isFile,
+    fileName: fileInfo.fileName,
+    authorUID: fileInfo.uid,
+    parentFolderId: fileInfo.parentFolderId,
     dateCreated: new Date(),
     dateModified: new Date()
-  });
-  folderSetup.save();
+  };
+
+  if (fileInfo.isFile) {
+    let docObj = {
+      name: fileInfo.fileName,
+      authorUID: fileInfo.uid,
+      dateCreated: new Date(),
+      dateLastEdited: new Date(),
+      visibility: 'restricted'
+    };
+
+    let fileSetup = new File(fileObj);
+    docObj.pointerToFile = fileSetup._id;
+
+    let docSetup = new Document(docObj);
+    await docSetup.save();
+    await fileSetup.save();
+  } else {
+    let depth = 0;
+    let location = [];
+
+    if (fileInfo.parentFolderId != 'root') {
+      depth = 1;
+      location.push(fileInfo.parentFolderId);
+      let currentFolder = await File.findById(fileInfo.parentFolderId).exec();
+      while (currentFolder.parentFolderId != 'root') {
+        depth++;
+        location.unshift(currFolder.parentFolderId);
+        currentFolder = await File.findById(currFolder.parentFolderId).exec();
+      }
+    }
+
+    fileObj.depth = depth;
+    fileObj.location = location;
+
+    let folderSetup = new File(fileObj);
+    await folderSetup.save();
+  }
   res.status(201).send('added document');
 })
 
@@ -142,7 +154,7 @@ app.post('/newFolder', (req, res) => {
  * @returns old name and new name of file/folder
  */
 app.post('/updateFolder', (req, res) => {
-  var update = req.query;
+  let update = req.query;
   console.log('update', update);
   if (!update) {
     return res.sendStatus(400);
@@ -160,16 +172,14 @@ app.post('/updateFolder', (req, res) => {
  * @param idToDelete: _id of file/folder to remove
  */
 app.post('/deleteFile', (req, res) => {
-  var query = req.query;
-
-  console.log('delete', query);
+  let query = req.query;
 
   if (!query) return res.sendStatus(400);
 
   File.findByIdAndDelete(query.idToDelete, function(err) {
     if (err) return res.status(400).send(err.message);
 
-    return res.status(200);
+    return res.status(200).json({success: true});
   });
 })
 
@@ -180,16 +190,62 @@ app.post('/deleteFile', (req, res) => {
  * @returns array of files/folders
  */
 app.get('/getDocuments', async (req, res) => {
-  var pathInfo = req.query;
+  let pathInfo = req.query;
   console.log(req.query);
   if (!pathInfo) {
     return res.sendStatus(400);
   }
 
-  var allDocs = await File.find({
-    authorUID: pathInfo.uid,
-    parentFolderId: pathInfo.parentFolderId
-  }).exec();
+  let allDocs;
+  if (pathInfo.parentFolderId == 'root') {
+    allDocs = await File.find({
+      parentFolderId: pathInfo.parentFolderId,
+      authorUID: pathInfo.uid
+    }).exec();
+  }
+
+  else {
+    idsToRemove = [];
+
+    let currFolder = await File.findById(pathInfo.parentFolderId).exec();
+
+    while (currFolder.parentFolderId.toString() !== 'root') {
+      if (currFolder.authorUID != pathInfo.uid && findPropertyInArray( currFolder.userPermissions, 'authorUID', pathInfo.uid) == -1)
+        idsToRemove.push(currFolder._id.toString());
+      else break;
+      currFolder = await File.findById(currFolder.parentFolderId);
+    }
+
+    allDocs = allDocs.filter(el => !idsToRemove.includes(el._id.toString()));
+  }
+
+  let allPointers = [];
+  for (let doc of allDocs) {
+    if (doc.isPointer) allPointers.push(doc.pointerTo.toString());
+  }
+
+  allDocs = allDocs.filter(doc => !allPointers.includes(doc._id.toString()));
+
+  for (let i = 0; i < allDocs.length; i++) {
+    if (allDocs[i].isPointer) {
+      console.log('doc is poitner');
+      let pointerFile = await File.findById(allDocs[i].pointerTo).exec();
+      if (pointerFile) {
+        let thisUsersPerms;
+        for (let perm of pointerFile.userPermissions) {
+          if (perm.authorUID == pathInfo.uid) {
+            thisUsersPerms = perm;
+            break;
+          }
+        }
+        Object.assign(allDocs[i], {
+          fileName: pointerFile.fileName,
+          userPermissions: pointerFile.userPermissions,
+          ourPerms: thisUsersPerms
+        });
+      }
+    }
+  }
 
   if (allDocs.length > 0) {
     return res.json(allDocs);
@@ -199,11 +255,11 @@ app.get('/getDocuments', async (req, res) => {
     console.log('-- in root');
     return res.json(allDocs);
   } else {
-    var inNewFolder = await File.findOne({
+    let inNewFolder = await File.findOne({
       authorUID: pathInfo.uid,
       isFile: false,
       _id: pathInfo.parentFolderId
-    });
+    }).exec();
   
     if (inNewFolder) {
       return res.json(allDocs);
@@ -214,14 +270,10 @@ app.get('/getDocuments', async (req, res) => {
 })
 
 app.get('/document', (req, res) => {
-  if (req.query && req.query.name) {    
-    db.collection('documents').findOne({name: req.query.name}, (err, document) => {
-      if (err) return res.status(404).send('no such documents found');
-      else return res.json(document);
-    });
-  } else {
-    res.status(400).send('missing query');
-  }
+  Document.findOne({pointerToFile: req.query.docId}, (err, document) => {
+    if (err) return res.status(404).send('no such documents found');
+    else return res.json(document);
+  });
 })
 
 /**
@@ -245,14 +297,14 @@ app.get('/getUser', (req, res) => {
  */
 app.get('/getPreviousCollaborators', async (req, res) => {
   console.log('bruh', req.query);
-  var userInfo = await User.findById(req.query.uid).exec();
+  let userInfo = await User.findById(req.query.uid).exec();
   if (!userInfo) {
     console.log('wrong credentials');
     return res.status(400);
   }
 
-  var collaborators = [];
-  for (var collaboratorId of userInfo.previousCollaborators) {
+  let collaborators = [];
+  for (let collaboratorId of userInfo.previousCollaborators) {
     collaborators.push(await User.findOne({_id: collaboratorId}).exec());
   }
 
@@ -265,17 +317,20 @@ app.get('/getPreviousCollaborators', async (req, res) => {
  * @returns array of each collaborator's access permissions
  */
 app.get('/getCollaborators', async (req, res) => {
-  console.log('hi');
-  var fileInfo = await File.findById(req.query.fileId);
+  let fileInfo = await File.findById(req.query.fileId);
   if (!fileInfo) {
     console.log('/getCOllaborators', 'no file found');
     return res.status(400).send('no such file');
   }
 
-  console.log('shoot', fileInfo.userPermissions);
-
-  if (fileInfo.userPermissions)
+  if (fileInfo.userPermissions & fileInfo.userPermissions.length > 0)
     return res.json(fileInfo.userPermissions);
+  else if (fileInfo.permParentPointer) {
+    let parentInfo = await File.findById(permParentPointer);
+    if (parentInfo)
+      return res.json(parentInfo.userPermissions);
+  }
+
   return res.json([]);
 })
 
@@ -293,61 +348,174 @@ app.get('/getCollaborators', async (req, res) => {
  *    @param collaborator.canShare: whether the collaborator can share the file/folder with others
  */
 app.post('/updateCollaborators', async (req, res) => {
-  var userInfo = await User.findById(req.query.uid).exec();
+  let userInfo = await User.findById(req.query.uid).exec();
   if (!userInfo) return res.status(400).send('wrong uid');
 
-  var fileInfo = await File.findById(req.query.fileId).exec();
+  let fileInfo = await File.findById(req.query.fileId).exec();
   if (!fileInfo) return res.status(400).send('no file');
-  
-  var currCollabIds = [];
-  for (var userPerm of fileInfo.userPermissions) {
+
+  console.log(`updating collaborators`);
+
+  let currCollabIds = [];
+  for (let userPerm of fileInfo.userPermissions) {
     currCollabIds.push(userPerm.authorUID);
   }
-
-  console.log('updating collaborators', currCollabIds, req.query.collaborators);
-
+  
   let resUIDs = [];
 
-  for (var i = 0; i < req.query.collaborators.length; i++) {
+  let len = req.query.collaborators ? req.query.collaborators.length : 0;
+
+  let addedCollaborator = false;
+
+  for (let i = 0; i < len; i++) {
     let collaborator = req.query.collaborators[i];
     resUIDs.push(collaborator.authorUID);
 
-    console.log(`[${i}/${req.query.collaborators.length}] started update`);
+    // console.log(`[${i}/${req.query.collaborators.length}] started update`);
     
+    /* add collaborator if not already there */
     if (!currCollabIds.includes(collaborator.authorUID)) {
-      console.log(`[${i}/${req.query.collaborators.length}] doesn't exist updating`);
+      addedCollaborator = true;
+      // console.log(`[${i}/${req.query.collaborators.length}] doesn't exist updating`);
       await File.updateOne({_id: req.query.fileId}, {$addToSet: {userPermissions: collaborator}}).exec();
-      console.log(`[${i}/${req.query.collaborators.length}] doesn't exist updated`);
-    } else {
-      console.log(`[${i}/${req.query.collaborators.length}] already exists updating`);
+      const newFile = new File({
+        authorUID: collaborator.authorUID,
+        isFile: fileInfo.isFile,
+        isPointer: true,
+        isShared: true,
+        pointerTo: req.query.fileId,
+        parentFolderId: 'root',
+        dateAdded: new Date(),
+        dateModified: new Date()
+      });
+      newFile.save();
+      // console.log(`[${i}/${req.query.collaborators.length}] doesn't exist updated`);
+    }
+
+    /* update collaborator if already there */
+    else {
+      // console.log(`[${i}/${req.query.collaborators.length}] already exists updating`);
       await File.updateOne({_id: req.query.fileId, 'userPermissions.authorUID': collaborator.authorUID}, {$set: {
         'userPermissions.$.editingMode': collaborator.editingMode,
         'userPermissions.$.canShare': collaborator.canShare
       }}).exec();
-      console.log(`[${i}/${req.query.collaborators.length}] already exists updated`);
+      // console.log(`[${i}/${req.query.collaborators.length}] already exists updated`);
     }
     
-    console.log(`[${i}/${req.query.collaborators.length}] updating previous collaborators`);
+    // console.log(`[${i}/${req.query.collaborators.length}] updating previous collaborators`);
     await User.updateOne({_id: req.query.uid}, {$addToSet: {previousCollaborators: collaborator.authorUID}}).exec();
     await User.updateOne({_id: collaborator.authorUID}, {$addToSet: {previousCollaborators: req.query.uid}}).exec();
-    console.log(`[${i}/${req.query.collaborators.length}] updated previous collaborators`);
+    // console.log(`[${i}/${req.query.collaborators.length}] updated previous collaborators`);
   }
 
-  let idsToRemove = currCollabIds.filter(el => !resUIDs.includes(el));
-  for (var toRemove of idsToRemove) {
+  /* remove collaborators */
+  let collaboratorsToRemove = fileInfo.userPermissions.filter(el => !resUIDs.includes(el.authorUID));
+  for (let toRemove of collaboratorsToRemove) {
     await File.updateOne({_id: req.query.fileId}, {$pull: {
       userPermissions: {
-        authorUID: toRemove
+        authorUID: toRemove.authorUID
       }
     }}).exec();
+    await File.findOneAndRemove({authorUID: toRemove.authorUID, pointerTo: req.query.fileId}).exec();
+  }
+
+  /* check if folder has collaborators to update whether it's shared or not */
+  let finalFileInfo = await File.findById(req.query.fileId).exec();
+  let hasCollaborators = finalFileInfo.userPermissions.length > 0;
+  
+  if (hasCollaborators != finalFileInfo.isShared) {
+    await File.updateOne({_id: req.query.fileId}, {
+      isShared: hasCollaborators
+    }).exec();
+
+    await File.updateMany({ 
+      authorUID: finalFileInfo.authorUID,
+      location: finalFileInfo._id,
+      permParentPointer: {$or: [
+        { depth: {$lt: finalFileInfo.depth} },
+        { depth: null }
+      ]}
+    }, {
+      permParentPointer: {
+        id: finalFileInfo._id,
+        depth: finalFileInfo.depth
+      }
+    }).exec();
   }
   
   console.log('completed!');
   return res.status(200).json({good: true});  
 })
 
+
+let docsToSockets = {};
+let socketsToDoc = {};
+
 io.on('connection', socket => {
+  socket.on('disconnect', () => {
+    if (docsToSockets[socketsToDoc[socket.id]]) {
+      docsToSockets[socketsToDoc[socket.id]] = docsToSockets[socketsToDoc[socket.id]].filter(el => el != socket.id);
+      delete socketsToDoc[socket.id]; 
+    }
+  })
+
+  socket.on('confirmDocId', docId => {
+    if (!docsToSockets[docId]) docsToSockets[docId] = [];
+    if (!docsToSockets[docId].includes(socket.id)) {
+      docsToSockets[docId].push(socket.id);
+      if (socketsToDoc[socket.id]) {
+        docsToSockets[docId] = docsToSockets[docId].filter(el => el != socket.id);
+      }
+      socketsToDoc[socket.id] = docId;
+    }
+    console.log('docsToSocket', docsToSockets);
+    console.log('socketsToDoc', socketsToDoc);
+  })
+
+  socket.on('stroke', stroke => {
+    for (let id of docsToSockets[socketsToDoc[socket.id]]) {
+      if (id != socket.id) {
+        io.to(id).emit('syncStroke', stroke);
+        console.log('sending', stroke.length, 'to sync');
+      }
+    }
+  })
+
+  socket.on('send', (msg, ...data) => {
+    for (let id of docsToSockets[socketsToDoc[socket.id]]) {
+      if (id != socket.id) {
+        console.log(socket.id, 'is sending', ...data, 'to', id);
+        io.to(id).emit(msg, ...data);
+      }
+    }
+  })
   
+  socket.on('saveStroke', async data => {
+    let doc = await Document.findOne({pointerToFile: data.docId}).exec();
+    if (doc.pages && doc.pages.length > 0) {
+      await Document.updateOne({pointerToFile: data.docId}, {
+        $push: {
+          'pages.0.strokes': {
+            authorUID: data.uid,
+            points: data.stroke.points,
+            style: data.stroke.style
+          }
+        }
+      }).exec();
+    } else {
+      await Document.updateOne({pointerToFile: data.docId}, {
+        $addToSet: {
+          pages: {
+            strokes: {
+              authorUID: data.uid,
+              points: data.stroke.points,
+              style: data.stroke.style
+            }
+          }
+        }
+      }).exec();
+    }
+  })
 })
 
 http.listen(port, function(){

@@ -5,6 +5,10 @@ var FileSchema = mongoose.Schema({
   authorUID: String,
   isFile: Boolean,
   isPointer: Boolean,
+  isShared: {
+    type: Boolean,
+    default: false
+  },
   pointerTo: ObjectID,
   visibility: {
     type: String,
@@ -21,8 +25,14 @@ var FileSchema = mongoose.Schema({
     },
     canShare: Boolean
   }],
+  permParentPointer: {
+    id: ObjectID,
+    depth: Number
+  },
   fileName: String,
   parentFolderId: String,
+  location: [String],
+  depth: Number,
   dateAdded: Date,
   dateModified: Date
 });

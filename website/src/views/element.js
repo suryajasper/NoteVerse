@@ -4,11 +4,13 @@ import styles from '../explorer.css';
 class Element {
   constructor(vnode) {
     this.hideElementEditButtons = true;
+    this.fileObj = vnode.attrs.file;
     this.showNameInput = vnode.attrs.file.isNew;
     this.startName = vnode.attrs.file.fileName;
     this.inputVal = vnode.attrs.file.fileName;
     this.parentFolderId = vnode.attrs.file.parentFolderId;
     this.fileId = vnode.attrs.key;
+    console.log('fileObj', this.fileObj);
   }
   
   updateFileNameInServer() {

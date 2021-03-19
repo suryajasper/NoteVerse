@@ -62,14 +62,14 @@ class Explorer {
   }
   
   createFile() {
-    console.log(this);
     var date = new Date();
     var newFileObj = {fileName: 'Note ' + date.toDateString() + ' ' + date.toTimeString(), dateModified: date, isNew: true};
     // this.files.push(newFileObj);
     m.request({
       method: 'POST',
-      url: 'http://localhost:2000/newDocument',
+      url: 'http://localhost:2000/newFile',
       params: {
+        isFile: true,
         fileName: newFileObj.fileName,
         uid: this.uid,
         parentFolderId: this.parentFolderId
@@ -86,8 +86,9 @@ class Explorer {
     // this.folders.push(newFolderObj);
     m.request({
       method: 'POST',
-      url: 'http://localhost:2000/newFolder',
+      url: 'http://localhost:2000/newFile',
       params: {
+        isFile: false,
         fileName: newFolderObj.fileName,
         uid: this.uid,
         parentFolderId: this.parentFolderId
@@ -166,15 +167,15 @@ class Explorer {
     this.clearSuggestions();
     for (var suggestion of this.shareSettings.suggestions) {
       if (suggestion.username.toLowerCase().includes(e.target.value.toLowerCase().trim()) &&
-          this.getIndexById(suggestion._id) < 0) {
+          this.getIndexById(this.shareSettings.contributors, 'authorUID', suggestion._id) < 0) {
         this.shareSettings.applicableSuggestions.push(suggestion);
       }
     }
   }
 
-  getIndexById(id) {
-    for (var i = 0; i < this.shareSettings.contributors.length; i++) {
-      if (this.shareSettings.contributors[i].authorUID === id) {
+  getIndexById(array, key, value) {
+    for (var i = 0; i < array.length; i++) {
+      if (array[i][key] === value) {
         return i;
       }
     }
@@ -182,12 +183,12 @@ class Explorer {
   }
   
   updateContributor(id, data) {
-    let ind = this.getIndexById(id);
+    let ind = this.getIndexById(this.shareSettings.contributors, 'authorUID', id);
     Object.assign(this.shareSettings.contributors[ind], data);
   }
   
   removeContributor(id) {
-    let ind = this.getIndexById(id);
+    let ind = this.getIndexById(this.shareSettings.contributors, 'authorUID', id);
     this.shareSettings.contributors.splice(ind, 1);
   }
   
@@ -224,6 +225,26 @@ class Explorer {
       this.shareSettings.sharePopupVisible = false;
     }).catch(err => {
       console.log('error saving contributors', err);
+    });
+  }
+
+  removeFile(id) {
+    console.log('remove file', id);
+    m.request({
+      method: 'POST',
+      url: 'http://localhost:2000/deleteFile',
+      params: {
+        idToDelete: id
+      },
+      deserialize: function(value) {return value}
+    }).then((res) => {
+      var fileInd = this.getIndexById( this.files, '_id', id );
+      var folderInd = this.getIndexById( this.folders, '_id', id );
+      if (fileInd > -1) {
+        this.files.splice(fileInd, 1);
+      } else if (folderInd > -1) {
+        this.folders.splice(folderInd, 1);
+      }
     });
   }
 
@@ -286,7 +307,7 @@ class Explorer {
           ]),
           m('li', {onclick: () => {
             if (this.selectedNode) {
-              this.selectedNode.remove();
+              this.removeFile(this.selectedNode.fileId);
             }
           }}, [
             m('div', {class: styles.folderItemContainer}, m('img', {style: 'width: 24px; height: 24px', src: '/src/images/Delete.svg'})),
@@ -309,15 +330,15 @@ class Explorer {
         fileId: this.selectedNode?.fileId,
         isVisible: this.shareSettings.sharePopupVisible,
         
-        hide:               ()          =>  {this.shareSettings.sharePopupVisible = false;},
-        removeContributor:  id          =>  this.removeContributor(id),
-        updateContributor:  (id, data)  =>  this.updateContributor(id, data),
-        getIndexById:       id          =>  this.getIndexById(id),
-        loadSuggestions:    e           =>  this.loadSuggestions(e),
-        clearSuggestions:   ()          =>  this.clearSuggestions(),
-        loadUsername:       (e, name)   =>  this.loadUsername(e, name),
-        fetchSuggestions:   ()          =>  this.fetchSuggestions(),
-        saveContributors:   ()          =>  this.saveContributors()
+        hide:               () => { this.shareSettings.sharePopupVisible = false; },
+        removeContributor:  this.removeContributor.bind(this),
+        updateContributor:  this.updateContributor.bind(this),
+        getIndexById:       this.getIndexById.bind(this),
+        loadSuggestions:    this.loadSuggestions.bind(this),
+        clearSuggestions:   this.clearSuggestions.bind(this),
+        loadUsername:       this.loadUsername.bind(this),
+        fetchSuggestions:   this.fetchSuggestions.bind(this),
+        saveContributors:   this.saveContributors.bind(this)
       })
     ])
   }

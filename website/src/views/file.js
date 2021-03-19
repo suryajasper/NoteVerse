@@ -54,7 +54,7 @@ class File extends Element {
             if (e.shiftKey) {
               this.showNameInput = true;
             } else if (!this.showNameInput) {
-              
+              window.location.href = '/#!/document/' + this.fileId;
             }
           }, oncontextmenu: e => {
             e.preventDefault();

@@ -30,7 +30,7 @@ class Folder extends Element {
     return m('div', {class: `${styles.folderDivOuter}`}, [
       m('div', {class: `${styles.folderDiv}`}, [
         m('div', {class: `${styles.folderItemContainer}`, style: 'width: 20px;'}, [
-          m('img', {src: '/src/images/Folder.svg'})
+          m('img', {src: this.fileObj.isPointer ? '/src/images/Shared-Folder.svg' : '/src/images/Folder.svg'})
         ]),
         m('div', {class: `${styles.folderItemContainer}`, style: ''}, this.nameInput(styles.folderTitle)),
         m('div', {class: styles.overflowContainer, tabindex: '0', onclick: e => {
@@ -53,7 +53,7 @@ class Folder extends Element {
             if (e.shiftKey) {
               this.rename();
             } else if (!this.showNameInput) {
-              window.location.href = `/#1/notes/${this.fileId}`;
+              window.location.href = `/#1/notes/${this.fileObj.isPointer ? this.fileObj.pointerTo : this.fileId}`;
             }
           }, oncontextmenu: e => {
             e.preventDefault();
