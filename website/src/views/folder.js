@@ -30,7 +30,7 @@ class Folder extends Element {
     return m('div', {class: `${styles.folderDivOuter}`}, [
       m('div', {class: `${styles.folderDiv}`}, [
         m('div', {class: `${styles.folderItemContainer}`, style: 'width: 20px;'}, [
-          m('img', {src: this.fileObj.isPointer ? '/src/images/Shared-Folder.svg' : '/src/images/Folder.svg'})
+          m('img', {src: this.fileObj.isShared ? '/src/images/Shared-Folder.svg' : '/src/images/Folder.svg'})
         ]),
         m('div', {class: `${styles.folderItemContainer}`, style: ''}, this.nameInput(styles.folderTitle)),
         m('div', {class: styles.overflowContainer, tabindex: '0', onclick: e => {

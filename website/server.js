@@ -196,36 +196,22 @@ app.get('/getDocuments', async (req, res) => {
     return res.sendStatus(400);
   }
 
-  let allDocs;
-  if (pathInfo.parentFolderId == 'root') {
-    allDocs = await File.find({
-      parentFolderId: pathInfo.parentFolderId,
-      authorUID: pathInfo.uid
-    }).exec();
-  }
-
-  else {
-    idsToRemove = [];
-
-    let currFolder = await File.findById(pathInfo.parentFolderId).exec();
-
-    while (currFolder.parentFolderId.toString() !== 'root') {
-      if (currFolder.authorUID != pathInfo.uid && findPropertyInArray( currFolder.userPermissions, 'authorUID', pathInfo.uid) == -1)
-        idsToRemove.push(currFolder._id.toString());
-      else break;
-      currFolder = await File.findById(currFolder.parentFolderId);
-    }
-
-    allDocs = allDocs.filter(el => !idsToRemove.includes(el._id.toString()));
-  }
-
-  let allPointers = [];
-  for (let doc of allDocs) {
-    if (doc.isPointer) allPointers.push(doc.pointerTo.toString());
-  }
-
-  allDocs = allDocs.filter(doc => !allPointers.includes(doc._id.toString()));
-
+  let allDocs = await File.find({
+    $and: [
+      { parentFolderId: pathInfo.parentFolderId },
+      { $or: [
+        { authorUID: pathInfo.uid },
+        {
+          userPermissions: {
+            $elemMatch: {
+              authorUID: pathInfo.uid
+            }
+          }
+        }
+      ]}
+    ]
+  }).exec();
+    
   for (let i = 0; i < allDocs.length; i++) {
     if (allDocs[i].isPointer) {
       console.log('doc is poitner');
@@ -238,7 +224,7 @@ app.get('/getDocuments', async (req, res) => {
             break;
           }
         }
-        Object.assign(allDocs[i], {
+        allDocs[i] = Object.assign(allDocs[i], {
           fileName: pointerFile.fileName,
           userPermissions: pointerFile.userPermissions,
           ourPerms: thisUsersPerms
@@ -255,11 +241,7 @@ app.get('/getDocuments', async (req, res) => {
     console.log('-- in root');
     return res.json(allDocs);
   } else {
-    let inNewFolder = await File.findOne({
-      authorUID: pathInfo.uid,
-      isFile: false,
-      _id: pathInfo.parentFolderId
-    }).exec();
+    let inNewFolder = await File.findById(pathInfo.parentFolderId).exec();
   
     if (inNewFolder) {
       return res.json(allDocs);
@@ -323,13 +305,10 @@ app.get('/getCollaborators', async (req, res) => {
     return res.status(400).send('no such file');
   }
 
-  if (fileInfo.userPermissions & fileInfo.userPermissions.length > 0)
+  console.log('loaded collaborators', fileInfo.userPermissions);
+
+  if (fileInfo.userPermissions && fileInfo.userPermissions.length > 0)
     return res.json(fileInfo.userPermissions);
-  else if (fileInfo.permParentPointer) {
-    let parentInfo = await File.findById(permParentPointer);
-    if (parentInfo)
-      return res.json(parentInfo.userPermissions);
-  }
 
   return res.json([]);
 })
@@ -354,8 +333,9 @@ app.post('/updateCollaborators', async (req, res) => {
   let fileInfo = await File.findById(req.query.fileId).exec();
   if (!fileInfo) return res.status(400).send('no file');
 
-  console.log(`updating collaborators`);
+  console.log(`updating collaborators`, req.query.collaborators);
 
+  // stores collaborator ids
   let currCollabIds = [];
   for (let userPerm of fileInfo.userPermissions) {
     currCollabIds.push(userPerm.authorUID);
@@ -370,13 +350,10 @@ app.post('/updateCollaborators', async (req, res) => {
   for (let i = 0; i < len; i++) {
     let collaborator = req.query.collaborators[i];
     resUIDs.push(collaborator.authorUID);
-
-    // console.log(`[${i}/${req.query.collaborators.length}] started update`);
     
     /* add collaborator if not already there */
     if (!currCollabIds.includes(collaborator.authorUID)) {
       addedCollaborator = true;
-      // console.log(`[${i}/${req.query.collaborators.length}] doesn't exist updating`);
       await File.updateOne({_id: req.query.fileId}, {$addToSet: {userPermissions: collaborator}}).exec();
       const newFile = new File({
         authorUID: collaborator.authorUID,
@@ -389,27 +366,23 @@ app.post('/updateCollaborators', async (req, res) => {
         dateModified: new Date()
       });
       newFile.save();
-      // console.log(`[${i}/${req.query.collaborators.length}] doesn't exist updated`);
     }
 
     /* update collaborator if already there */
     else {
-      // console.log(`[${i}/${req.query.collaborators.length}] already exists updating`);
       await File.updateOne({_id: req.query.fileId, 'userPermissions.authorUID': collaborator.authorUID}, {$set: {
         'userPermissions.$.editingMode': collaborator.editingMode,
         'userPermissions.$.canShare': collaborator.canShare
       }}).exec();
-      // console.log(`[${i}/${req.query.collaborators.length}] already exists updated`);
     }
     
-    // console.log(`[${i}/${req.query.collaborators.length}] updating previous collaborators`);
     await User.updateOne({_id: req.query.uid}, {$addToSet: {previousCollaborators: collaborator.authorUID}}).exec();
     await User.updateOne({_id: collaborator.authorUID}, {$addToSet: {previousCollaborators: req.query.uid}}).exec();
-    // console.log(`[${i}/${req.query.collaborators.length}] updated previous collaborators`);
   }
-
+  
   /* remove collaborators */
   let collaboratorsToRemove = fileInfo.userPermissions.filter(el => !resUIDs.includes(el.authorUID));
+
   for (let toRemove of collaboratorsToRemove) {
     await File.updateOne({_id: req.query.fileId}, {$pull: {
       userPermissions: {
@@ -419,6 +392,46 @@ app.post('/updateCollaborators', async (req, res) => {
     await File.findOneAndRemove({authorUID: toRemove.authorUID, pointerTo: req.query.fileId}).exec();
   }
 
+  /* update subfiles */
+  if (!fileInfo.isFile) {
+    const queue = await File.find({authorUID: req.query.uid, parentFolderId: req.query.fileId}).exec();
+
+    while (queue.length > 0) {
+      const currFile = queue.shift();
+
+      if (!currFile.isFile) {
+        const subFiles = await File.find({authorUID: req.query.uid, parentFolderId: currFile._id}).exec();
+        if (subFiles) {
+          for (const file of subFiles) {
+            queue.push(file);
+          }
+        }
+      }
+
+      if (req.query.collaborators) {
+        for (const collaborator of req.query.collaborators) {
+          await File.updateOne({_id: currFile._id}, {
+            $addToSet: {userPermissions: collaborator}
+          }).exec();
+        }
+      }
+
+      for (const toRemove of collaboratorsToRemove) {
+        await File.updateOne({_id: currFile._id}, {$pull: {
+          userPermissions: {
+            authorUID: toRemove.authorUID
+          }
+        }}).exec();
+      }
+
+      let finalDoc = await File.findById(currFile._id).exec();
+      if (finalDoc.userPermissions.length == 0)
+        await File.updateOne({_id: currFile._id}, {isShared: false}).exec();
+      else if (!finalDoc.isShared)
+        await File.updateOne({_id: currFile._id}, {isShared: true}).exec();
+    }
+  }
+
   /* check if folder has collaborators to update whether it's shared or not */
   let finalFileInfo = await File.findById(req.query.fileId).exec();
   let hasCollaborators = finalFileInfo.userPermissions.length > 0;
@@ -426,20 +439,6 @@ app.post('/updateCollaborators', async (req, res) => {
   if (hasCollaborators != finalFileInfo.isShared) {
     await File.updateOne({_id: req.query.fileId}, {
       isShared: hasCollaborators
-    }).exec();
-
-    await File.updateMany({ 
-      authorUID: finalFileInfo.authorUID,
-      location: finalFileInfo._id,
-      permParentPointer: {$or: [
-        { depth: {$lt: finalFileInfo.depth} },
-        { depth: null }
-      ]}
-    }, {
-      permParentPointer: {
-        id: finalFileInfo._id,
-        depth: finalFileInfo.depth
-      }
     }).exec();
   }
   

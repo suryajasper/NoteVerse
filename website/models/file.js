@@ -4,7 +4,10 @@ const mongoose = require('mongoose');
 var FileSchema = mongoose.Schema({
   authorUID: String,
   isFile: Boolean,
-  isPointer: Boolean,
+  isPointer: {
+    type: Boolean,
+    default: false
+  },
   isShared: {
     type: Boolean,
     default: false
@@ -25,13 +28,9 @@ var FileSchema = mongoose.Schema({
     },
     canShare: Boolean
   }],
-  permParentPointer: {
-    id: ObjectID,
-    depth: Number
-  },
   fileName: String,
-  parentFolderId: String,
   location: [String],
+  parentFolderId: String,
   depth: Number,
   dateAdded: Date,
   dateModified: Date

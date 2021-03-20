@@ -201,6 +201,7 @@ class Explorer {
         fileId: this.selectedNode?.fileId
       }
     }).then(collaboratorRes => {
+      console.log('collaboratorRes', collaboratorRes);
       this.shareSettings.contributors = collaboratorRes;
       this.shareSettings.sharePopupVisible = true;
       m.redraw();
