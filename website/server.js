@@ -94,7 +94,7 @@ app.post('/authenticateUser', (req, res) => {
  */
 app.post('/newFile', async (req, res) => {
   let fileInfo = req.query;
-  console.log(req.query);
+  console.log('newFile', req.query);
   if (!fileInfo) {
     return res.sendStatus(400);
   }
@@ -108,7 +108,7 @@ app.post('/newFile', async (req, res) => {
     dateModified: new Date()
   };
 
-  if (fileInfo.isFile) {
+  if (fileInfo.isFile == true) {
     let docObj = {
       name: fileInfo.fileName,
       authorUID: fileInfo.uid,
@@ -124,21 +124,23 @@ app.post('/newFile', async (req, res) => {
     await docSetup.save();
     await fileSetup.save();
   } else {
-    let depth = 0;
     let location = [];
+    
+    console.log('loc1', location);
 
     if (fileInfo.parentFolderId != 'root') {
-      depth = 1;
-      location.push(fileInfo.parentFolderId);
-      let currentFolder = await File.findById(fileInfo.parentFolderId).exec();
-      while (currentFolder.parentFolderId != 'root') {
-        depth++;
+      let currFolder = await File.findById(fileInfo.parentFolderId).exec();
+      while (currFolder.parentFolderId != 'root') {
         location.unshift(currFolder.parentFolderId);
-        currentFolder = await File.findById(currFolder.parentFolderId).exec();
+        currFolder = await File.findById(currFolder.parentFolderId).exec();
       }
     }
+    
+    location.unshift('root');
 
-    fileObj.depth = depth;
+    console.log('saving location', location);
+
+    fileObj.depth = location.length;
     fileObj.location = location;
 
     let folderSetup = new File(fileObj);
@@ -171,16 +173,22 @@ app.post('/updateFolder', (req, res) => {
  * Delete file or folder
  * @param idToDelete: _id of file/folder to remove
  */
-app.post('/deleteFile', (req, res) => {
+app.post('/deleteFile', async (req, res) => {
   let query = req.query;
 
   if (!query) return res.sendStatus(400);
 
-  File.findByIdAndDelete(query.idToDelete, function(err) {
-    if (err) return res.status(400).send(err.message);
 
-    return res.status(200).json({success: true});
-  });
+  console.log(query.idToDelete);
+  await File.findByIdAndDelete(query.idToDelete).exec();
+  
+  let subFiles = await File.find({location: query.idToDelete}).exec();
+
+  for (let file of subFiles) {
+    await File.findByIdAndDelete(file._id).exec();
+  }
+
+  return res.status(200).json({success: true});
 })
 
 /**

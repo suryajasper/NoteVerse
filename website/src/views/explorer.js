@@ -1,5 +1,6 @@
-import m from 'mithril'
-import File from './file'
+import m from 'mithril';
+import File from './file';
+import Path from './path';
 import styles from '../explorer.css';
 import Cookies from '../utils/cookies';
 import Folder from './folder';
@@ -239,13 +240,7 @@ class Explorer {
       },
       deserialize: function(value) {return value}
     }).then((res) => {
-      var fileInd = this.getIndexById( this.files, '_id', id );
-      var folderInd = this.getIndexById( this.folders, '_id', id );
-      if (fileInd > -1) {
-        this.files.splice(fileInd, 1);
-      } else if (folderInd > -1) {
-        this.folders.splice(folderInd, 1);
-      }
+      this.fetch();
     });
   }
 
