@@ -12,6 +12,7 @@ class Explorer {
     this.parentFolderId = vnode.attrs.folderId;
     this.folders = [];
     this.files = [];
+    this.path = [];
     this.contextMenu = {
       x: 0,
       y: 0,
@@ -49,17 +50,33 @@ class Explorer {
     })
   }
 
+  fetchPath() {
+    m.request({
+      method: "GET",
+      url: "http://localhost:2000/getLocation",
+      params: {
+        parentFolderId: this.parentFolderId
+      }
+    }).then(location => {
+      console.log('path', location);
+      this.path = location;
+      m.redraw();
+    }).catch(function(error) {
+      window.location.href = '/notes#!/root/';
+    })
+  }
+
   oncreate(vnode) {
     if (!Cookies.get('uid')) {
       window.location.href = '/#!/login';
     }
     this.fetch();
+    this.fetchPath();
     this.contextMenu = {
       x: 0,
       y: 0,
       hidden: 'none'
     }
-    console.log('oncreate', this.contextMenu);
   }
   
   createFile() {
@@ -248,6 +265,7 @@ class Explorer {
     if (vnode.attrs.folderId && vnode.attrs.folderId != this.parentFolderId) {
       this.parentFolderId = vnode.attrs.folderId;
       this.fetch();
+      this.fetchPath();
     }
     return m('div', {class: `${styles.explorerContainer}`}, [
       m('div', {class: `${styles.centerHorizontalContainer}`}, [
@@ -269,7 +287,8 @@ class Explorer {
           }}, 'Share Settings'),
           m('button', {class: `${styles.optionsMenuButton}`}, 'Remove Folder'),
           m('button', {class: `${styles.optionsMenuButton}`}, 'Edit Profile')
-        ])
+        ]),
+        m(Path, {location: this.path}),
       ]),
       m('p', {class: `${styles.elementTypeName}`}, 'Folders'),
       m('div', {class: `${styles.foldersView}`}, 

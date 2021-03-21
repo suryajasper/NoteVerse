@@ -99,9 +99,13 @@ app.post('/newFile', async (req, res) => {
     return res.sendStatus(400);
   }
 
+  let parentFolderInfo;
+  if (fileInfo.parentFolderId != 'root') parentFolderInfo = await File.findById(fileInfo.parentFolderId).exec();
+
   let fileObj = {
     isFile: fileInfo.isFile,
     fileName: fileInfo.fileName,
+    isShared: parentFolderInfo ? parentFolderInfo.isShared : false,
     authorUID: fileInfo.uid,
     parentFolderId: fileInfo.parentFolderId,
     dateCreated: new Date(),
@@ -127,8 +131,9 @@ app.post('/newFile', async (req, res) => {
     let location = [];
     
     console.log('loc1', location);
-
+    
     if (fileInfo.parentFolderId != 'root') {
+      location.unshift(fileInfo.parentFolderId);
       let currFolder = await File.findById(fileInfo.parentFolderId).exec();
       while (currFolder.parentFolderId != 'root') {
         location.unshift(currFolder.parentFolderId);
@@ -146,6 +151,7 @@ app.post('/newFile', async (req, res) => {
     let folderSetup = new File(fileObj);
     await folderSetup.save();
   }
+
   res.status(201).send('added document');
 })
 
@@ -278,6 +284,31 @@ app.get('/getUser', (req, res) => {
       return res.json(document);
     }
   });
+})
+
+app.get('/getLocation', async (req, res) => {
+  if (req.query.parentFolderId == 'root') return res.json([]);
+  const folderInfo = await File.findById(req.query.parentFolderId).exec();
+
+  let path = [];
+  for (let pos of folderInfo.location) {
+    if (pos == 'root') {
+      path.push({ name: 'root', id: 'root' })
+    } else {
+      const posInfo = await File.findById(pos).exec();
+      path.push({
+        name: posInfo.fileName,
+        id: pos
+      });
+    }
+  }
+  path.push({
+    name: folderInfo.fileName,
+    id: req.query.parentFolderId
+  });
+  console.log(path);
+
+  return res.json(path);
 })
 
 /**
