@@ -35,6 +35,14 @@ const toolStyles = [
   {
     isCanvasLevel: false,
   },
+  {
+    stroke: '#abdded',
+    linewidth: 5,
+    opacity: 1,
+    cap: 'round',
+    join: 'round',
+    isCanvasLevel: true,
+  },
 ];
 
 export default class Toolbar {
@@ -42,8 +50,13 @@ export default class Toolbar {
     this.tools = [brush, eraser, text, image, select];
     this.overlays = [brushOverlay, eraserOverlay];
     this.styles = vnode.attrs.initStyles || toolStyles;
-    this.active = 0;
     this.expand = false;
+
+    let cachedTool = window.localStorage.getItem('activeTool');
+    if (cachedTool)
+      this.active = parseInt(cachedTool);
+    else
+      this.active = 0;
   }
 
   tool(icon, selected, idx) {
@@ -51,6 +64,7 @@ export default class Toolbar {
       class: `${styles.tool} ${selected ? styles.selected : ''}`,
       onclick: () => {
         this.active = idx;
+        window.localStorage.setItem('activeTool', this.active);
         this.expand = this.overlays[idx];
         m.redraw();
       },

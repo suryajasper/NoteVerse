@@ -1,7 +1,7 @@
 import m from 'mithril'
 import styles from '../explorer.css';
 import Element from './element';
-import {createRipple} from '../utils/dom';
+import {createRipple} from '../../utils/dom';
 
 class Folder extends Element {
   constructor(vnode) {
@@ -30,7 +30,7 @@ class Folder extends Element {
     return m('div', {class: `${styles.folderDivOuter}`}, [
       m('div', {class: `${styles.folderDiv}`}, [
         m('div', {class: `${styles.folderItemContainer}`, style: 'width: 20px;'}, [
-          m('img', {src: this.fileObj.isShared ? '/src/images/Shared-Folder.svg' : '/src/images/Folder.svg'})
+          m('img', {src: this.fileObj.isShared ? '/src/file-explorer/images/Shared-Folder.svg' : '/src/file-explorer/images/Folder.svg'})
         ]),
         m('div', {class: `${styles.folderItemContainer}`, style: ''}, this.nameInput(styles.folderTitle)),
         m('div', {class: styles.overflowContainer, tabindex: '0', onclick: e => {
@@ -41,7 +41,7 @@ class Folder extends Element {
             m.redraw();
           }, 100);
         }},
-          m('img', {src: '/src/images/Overflow.svg'})
+          m('img', {src: '/src/file-explorer/images/Overflow.svg'})
         ),
         m('div', {style: "position:absolute; left:0; right:0; top:0; bottom:0;", class: styles.rippleButton, tabindex: '0', hidden: this.showNameInput,
           onmouseenter: (e) => {

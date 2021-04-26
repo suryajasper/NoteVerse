@@ -1,8 +1,8 @@
 import m from 'mithril';
-import Explorer from './views/explorer';
-import {Login, Signup} from './views/login';
+import EditProfile from './file-explorer/views/edit-profile';
+import Explorer from './file-explorer/views/explorer';
+import {Login, Signup} from './file-explorer/views/login';
 import Editor from './document-editor/editor/editor';
-import EditProfile from './views/edit-profile'
 
 m.route(document.body, "/notes/root", {
   "/notes/:folderId": Explorer,

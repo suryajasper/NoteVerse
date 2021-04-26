@@ -1,6 +1,6 @@
 import m from 'mithril';
 import styles from '../signup.css';
-import Cookies from '../utils/cookies';
+import Cookies from '../../utils/cookies';
 
 var Login = {
   email: '',

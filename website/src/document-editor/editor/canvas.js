@@ -1,7 +1,7 @@
 import m from 'mithril';
 import Two from 'two.js';
 import styles from './editor.css';
-import { getRelativeMousePosition, getAbsoluteMousePosition, makePoint, inToPix, pixToIn } from './util';
+import { getRelativeMousePosition, makePoint, inToPix, pixToIn, pointInRect, pointInPolygon } from './util';
 import Cookies from '../../utils/cookies';
 
 let canvasState = {
@@ -27,6 +27,7 @@ class Canvas {
     this.socket.emit('confirmDocId', this.docId);
     
     this.state.style = vnode.attrs.editorState.style;
+    this.state.tool = vnode.attrs.editorState.tool;
   }
   
   fetchStrokes() {
@@ -41,15 +42,25 @@ class Canvas {
       console.log(docInfo);
       if (docInfo.pages.length == 0) return;
       let strokes = docInfo.pages[0].strokes;
+
+      this.points = [];
+      this.strokes = [];
+
       for (let stroke of strokes) {
         let strokeBuild = this.two.makeCurve(true);
         strokeBuild.noFill();
         strokeBuild = Object.assign(strokeBuild, stroke.style);
 
-        for (let point of stroke.points)
+        for (let point of stroke.points) {
           strokeBuild.vertices.push(makePoint(
-              inToPix( point, this.target )
+            inToPix( point, this.target )
           ));
+          this.points.push({
+            stroke: strokeBuild,
+            coord: inToPix( point, this.target )
+          });
+          this.strokes.push(strokeBuild);
+        }
       }
       m.redraw();
     }).catch(function(error) {
@@ -126,27 +137,54 @@ class Canvas {
       thisSync.currStroke.vertices.push(thisSync.lastPos);
     }
     else {
-      console.log('not syncing');
-      this.state.lastPos = makePoint(getRelativeMousePosition(f, canvasState.scale));
+      let pos = getRelativeMousePosition(f, canvasState.scale);
+      
+      this.state.lastPos = makePoint(pos);
 
-      let posToSend = pixToIn({
-        x: this.state.lastPos.x,
-        y: this.state.lastPos.y,
-        target: this.target,
-      });
+      if (this.state.tool == 4) {
+        if (this.currSelection) {
 
-      this.socket.emit('send', 'syncStartDrawing', Object.assign({
-        style: this.state.style,
-        uid: this.uid
-      }, posToSend));
+          if (pointInPolygon(this.currSelection.vertices, pos)) {
+            this.draggingSelection = true;
+            document.body.style.cursor = 'move';
+            return;
+          } else {
+            for (let stroke of this.strokesInSelection)
+              stroke.stroke.stroke = stroke.oldStyle;
+            
+            this.two.remove(this.currSelection);
+            this.draggingSelection = false;
+          }
+        }
 
-      this.currStroke = this.two.makeCurve(true);
-      this.currStroke.noFill();
-      this.currStroke = Object.assign(this.currStroke, this.state.style);
+        this.currSelection = this.two.makePath(true);
+        this.currSelection.fill = '#abdded80';
+        this.currSelection = Object.assign(this.currSelection, this.state.style);
 
-      // should be able to tap to place points without dragging
-      this.currStroke.vertices.push(this.state.lastPos);
-      this.currStroke.vertices.push(this.state.lastPos);
+        this.currSelection.vertices.push(this.state.lastPos);
+
+      } else {
+  
+        let posToSend = pixToIn({
+          x: this.state.lastPos.x,
+          y: this.state.lastPos.y,
+          target: this.target,
+        });
+  
+        this.socket.emit('send', 'syncStartDrawing', Object.assign({
+          style: this.state.style,
+          uid: this.uid
+        }, posToSend));
+  
+        this.currStroke = this.two.makeCurve(true);
+        this.currStroke.noFill();
+        this.currStroke = Object.assign(this.currStroke, this.state.style);
+  
+        // should be able to tap to place points without dragging
+        this.currStroke.vertices.push(this.state.lastPos);
+        this.currStroke.vertices.push(this.state.lastPos);
+
+      }
     }
 
     this.currIdle = 0;
@@ -174,37 +212,69 @@ class Canvas {
 
     let pos;
     if (isSyncing) {
-      pos = makePoint(inToPix({
-        x: e.clientX,
-        y: e.clientY,
-        target: this.target,
-      }));
-    }
-    else {
+      pos = makePoint(inToPix(e, this.target));
+    } else {
       pos = makePoint(getRelativeMousePosition(f, canvasState.scale));
-      this.socket.emit('send', 'syncDrag', Object.assign(
-        pixToIn({x: pos.x, y: pos.y, target: this.target}),
-        {uid: this.uid}
-      ));
+      if (this.state.tool == 0) {
+        this.socket.emit('send', 'syncDrag', Object.assign(
+          pixToIn(pos, this.target),
+          {uid: this.uid}
+        ));
+      }
     }
 
-    const vel = Math.sqrt(
-      (pos.x - state.lastPos.x) ** 2 + (pos.y - state.lastPos.y) ** 2,
-    );
-
-    if (vel > 1) {
-      clearTimeout(this.idleTimeout);
-      this.idleTimeout = undefined;
-    }
-
-    if (!this.idleTimeout) {
-      this.idleTimeout = setTimeout(this.handleLineMode.bind(this), this.state.lineModeTimeout);
+    if (this.state.tool == 0) {
+      const vel = Math.sqrt(
+        (pos.x - state.lastPos.x) ** 2 + (pos.y - state.lastPos.y) ** 2,
+      );
+  
+      if (vel > 1) {
+        clearTimeout(this.idleTimeout);
+        this.idleTimeout = undefined;
+      }
+  
+      if (!this.idleTimeout) {
+        this.idleTimeout = setTimeout(this.handleLineMode.bind(this), this.state.lineModeTimeout);
+      }
     }
 
     if (isSyncing)
       this.syncs[e.uid].currStroke.vertices.push(pos);
-    else
-      this.currStroke.vertices.push(pos);
+    else {
+      if (this.state.tool == 0)
+        this.currStroke.vertices.push(pos);
+      
+      else if (this.state.tool == 4) {
+        if (this.draggingSelection) {
+
+          let movement = new Two.Vector(e.movementX, e.movementY);
+
+          for (let rawStroke of this.strokesInSelection) {
+            let stroke = rawStroke.stroke;
+            for (let i = 0; i < stroke.vertices.length; i++) {
+              stroke.vertices[i].add(movement);
+            }
+          }
+
+          this.currSelection.position.add(movement);
+
+        } else {
+
+          let vertices = this.currSelection.vertices;
+
+          if (vertices.length > 1) {
+            let lastPredict = vertices.pop();
+            lastPredict.clear();
+          }
+          vertices.push(pos);
+          vertices.push(makePoint({
+            x: vertices[0].x,
+            y: vertices[0].y
+          }));
+
+        }
+      }
+    }
 
     if (this.lineMode) {
       this.handleLineMode();
@@ -225,10 +295,84 @@ class Canvas {
     return arr;
   }
 
+  refreshPoints() {
+    this.points = [];
+
+    for (let stroke of this.strokes) {
+      for (let i = 0; i < stroke.vertices.length; i++) {
+        this.points.push({
+          coord: {
+            x: stroke.vertices[i].x,
+            y: stroke.vertices[i].y
+          },
+          stroke: stroke
+        });
+      }
+    }
+  }
+
   handleToolUp(syncE) {
     document.body.style.cursor = 'default';
     this.state.drawing = false;
     clearTimeout(this.idleTimeout);
+
+    if (this.state.tool == 4 && syncE.type != 'mouseout') {
+
+      if (this.draggingSelection) this.refreshPoints();
+
+      else {
+
+        let startTime = performance.now();
+  
+        let len = this.currSelection.vertices.length;
+        
+        let bb = [{x: 100000, y: 100000}, {x: 0, y: 0}];
+        for (let i = 0; i < len; i ++) {
+          let coord = this.currSelection.vertices[i];
+  
+          bb[0].x = Math.min(bb[0].x, coord.x);
+          bb[0].y = Math.min(bb[0].y, coord.y);
+  
+          bb[1].x = Math.max(bb[1].x, coord.x);
+          bb[1].y = Math.max(bb[1].y, coord.y);
+        }
+        
+        console.log('before bb', this.points.length);
+        
+        let ptsInBB = [];
+        
+        for (let pt of this.points) {
+          if (pointInRect(bb[0].x, bb[0].y, bb[1].x, bb[1].y, pt.coord.x, pt.coord.y)) {
+            // pt.stroke.stroke = 'orangered';
+            ptsInBB.push(pt);
+          }
+        }
+  
+        console.log('after bb', ptsInBB.length);
+        
+        let selectedStrokes = [];
+        this.strokesInSelection = [];
+  
+        let s = 0;
+  
+        for (let pt of ptsInBB) {
+          if (selectedStrokes.includes(pt.stroke.id)) continue;
+          else if (pointInPolygon(this.currSelection.vertices, pt.coord)) {
+            selectedStrokes.push(pt.stroke.id);
+            this.strokesInSelection.push({
+              stroke: pt.stroke,
+              oldStyle: pt.stroke.stroke
+            });
+            // pt.stroke.stroke = 'orange';
+          }
+          s++;
+        }
+  
+        console.log('after lasso', s);
+        console.log(`elapsed time ${(performance.now()-startTime)/1000} seconds`);
+        console.log('-------------');
+      }
+    }
 
     if (this.currStroke && !syncE.uid) {
       let stroke = {
@@ -237,7 +381,6 @@ class Canvas {
       };
       // this.socket.emit('stroke', stroke);
       this.socket.emit('send', 'syncStopDrawing', {uid: this.uid});
-      console.log('madeStroke', stroke);
       if (stroke.points.length > 0) {
         this.socket.emit('saveStroke', {
           docId: this.docId,
@@ -245,7 +388,16 @@ class Canvas {
           stroke: stroke
         })
       }
+
       this.state.strokes.push(this.currStroke);
+      for (let i = 0; i < this.currStroke.vertices.length; i++) {
+        let coord = this.currStroke.vertices[i];
+        this.points.push({
+          coord: {x: coord.x, y: coord.y},
+          stroke: this.currStroke
+        });
+        this.strokes.push(this.currStroke);
+      }
     }
     if (syncE.uid) {
       this.state.strokes.push(this.syncs[syncE.uid].currStroke);
@@ -293,6 +445,7 @@ class Canvas {
 
   view(vnode) {
     this.state.style = vnode.attrs.editorState.style;
+    this.state.tool = vnode.attrs.editorState.tool;
 
     return m('div', {
       class: styles.letter_doc,

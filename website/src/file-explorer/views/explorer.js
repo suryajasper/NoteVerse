@@ -2,7 +2,7 @@ import m from 'mithril';
 import File from './file';
 import Path from './path';
 import styles from '../explorer.css';
-import Cookies from '../utils/cookies';
+import Cookies from '../../utils/cookies';
 import Folder from './folder';
 import { SharePopup } from './popup';
 
@@ -274,10 +274,10 @@ class Explorer {
             m('button', {class: `${styles.dropdownButton}`}, 'Add'),
             m('div', {class: `${styles.dropdownContent}`}, [
               m('div', {class: `${styles.dropdownElement}`, onclick: () => this.createFile()},
-                m('img', {src: '/src/images/File.svg'})
+                m('img', {src: '/src/file-explorer/images/File.svg'})
               ),
               m('div', {class: `${styles.dropdownElement}`, onclick: () => this.createFolder()},
-                m('img', {src: '/src/images/Folder.svg'})
+                m('img', {src: '/src/file-explorer/images/Folder.svg'})
               )
             ])
           ]),
@@ -285,7 +285,9 @@ class Explorer {
             // this.updateContext('show', e);
             Cookies.erase('uid');
           }}, 'Share Settings'),
-          m('button', {class: `${styles.optionsMenuButton}`}, 'Remove Folder'),
+          m('button', {class: `${styles.optionsMenuButton}`, onclick: e => {
+            this.fetch();
+          }}, 'Refresh'),
           m('button', {class: `${styles.optionsMenuButton}`}, 'Edit Profile')
         ]),
         m(Path, {location: this.path}),
@@ -318,7 +320,7 @@ class Explorer {
               this.selectedNode.rename();
             }
           }}, [
-            m('div', {class: styles.folderItemContainer}, m('img', {style: 'width: 24px; height: 24px', src: '/src/images/Edit.svg'})),
+            m('div', {class: styles.folderItemContainer}, m('img', {style: 'width: 24px; height: 24px', src: '/src/file-explorer/images/Edit.svg'})),
             m('div', {class: styles.folderItemContainer}, m('span', 'Rename'))
           ]),
           m('li', {onclick: () => {
@@ -326,14 +328,14 @@ class Explorer {
               this.removeFile(this.selectedNode.fileId);
             }
           }}, [
-            m('div', {class: styles.folderItemContainer}, m('img', {style: 'width: 24px; height: 24px', src: '/src/images/Delete.svg'})),
+            m('div', {class: styles.folderItemContainer}, m('img', {style: 'width: 24px; height: 24px', src: '/src/file-explorer/images/Delete.svg'})),
             m('div', {class: styles.folderItemContainer}, m('span', 'Remove'))
           ]),
           m('li', {onclick: () => {
             this.fetchSuggestions();
             this.loadContributors();
           }}, [
-            m('div', {class: styles.folderItemContainer}, m('img', {style: 'width: 24px; height: 24px', src: '/src/images/Share.svg'})),
+            m('div', {class: styles.folderItemContainer}, m('img', {style: 'width: 24px; height: 24px', src: '/src/file-explorer/images/Share.svg'})),
             m('div', {class: styles.folderItemContainer}, m('span', 'Share'))
           ])
         ])

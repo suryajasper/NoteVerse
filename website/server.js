@@ -106,13 +106,16 @@ app.post('/newFile', async (req, res) => {
     isFile: fileInfo.isFile,
     fileName: fileInfo.fileName,
     isShared: parentFolderInfo ? parentFolderInfo.isShared : false,
+    userPermissions: (parentFolderInfo && parentFolderInfo.userPermissions) ? parentFolderInfo.userPermissions : [],
     authorUID: fileInfo.uid,
     parentFolderId: fileInfo.parentFolderId,
     dateCreated: new Date(),
     dateModified: new Date()
   };
 
-  if (fileInfo.isFile == true) {
+  console.log('creating file', fileInfo.isFile, typeof fileInfo.isFile);
+
+  if (eval(fileInfo.isFile)) {
     let docObj = {
       name: fileInfo.fileName,
       authorUID: fileInfo.uid,
@@ -184,14 +187,19 @@ app.post('/deleteFile', async (req, res) => {
 
   if (!query) return res.sendStatus(400);
 
+  async function deleteById(id) {
+    await File.findByIdAndDelete(id).exec();
+    await File.findOneAndDelete({pointerTo: id}).exec();
+    await Document.findOneAndDelete({pointerToFile: id}).exec();
+  }
 
   console.log(query.idToDelete);
-  await File.findByIdAndDelete(query.idToDelete).exec();
-  
-  let subFiles = await File.find({location: query.idToDelete}).exec();
+  await deleteById(query.idToDelete);
 
+  let subFiles = await File.find({location: query.idToDelete}).exec();
+  
   for (let file of subFiles) {
-    await File.findByIdAndDelete(file._id).exec();
+    await deleteById(file._id);
   }
 
   return res.status(200).json({success: true});
@@ -506,8 +514,6 @@ io.on('connection', socket => {
       }
       socketsToDoc[socket.id] = docId;
     }
-    console.log('docsToSocket', docsToSockets);
-    console.log('socketsToDoc', socketsToDoc);
   })
 
   socket.on('stroke', stroke => {

@@ -333,6 +333,10 @@ span.ripple {
   margin-right: 14px;
 }
 
+.pathDiv .pathSlash:last-child {
+  display: none;
+}
+
 .pathDiv .pathFolder {
   padding: 6px;
   border: 2px solid #dedede;

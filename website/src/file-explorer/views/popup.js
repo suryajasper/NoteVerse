@@ -1,7 +1,7 @@
 import m from 'mithril';
-import Cookies from '../utils/cookies';
+import Cookies from '../../utils/cookies';
 import styles from '../popup.css';
-import {createRipple} from '../utils/dom';
+import {createRipple} from '../../utils/dom';
 
 class Popup {
   constructor(vnode) {
@@ -20,7 +20,7 @@ class SharePopup extends Popup {
       m('div', {class: styles.popupDiv, tabindex: '0', hidden: !vnode.attrs.isVisible/*\\, onblur: () => this.hide()*/}, [
         m('h2', {class: styles.popupTitle}, this.title),
         m('button', {class: styles.popupCancel, onclick: () => {vnode.attrs.hide();}}, 
-          m('img', {src: '/src/images/close.svg'})
+          m('img', {src: '/src/file-explorer/images/close.svg'})
         ),
         m('div', {class: styles.popupContent}, [
           m('div', {class: styles.sharePopupInput}, [
@@ -51,17 +51,17 @@ class SharePopup extends Popup {
             return m('li', [
               m('p', contributor.username),
               m('div', {class: styles.shareUserOptions}, [
-                m('img', {src: '/src/images/remove-person.svg', title: 'Remove', class: styles.showOnHover, onclick: e => {
+                m('img', {src: '/src/file-explorer/images/remove-person.svg', title: 'Remove', class: styles.showOnHover, onclick: e => {
                   vnode.attrs.removeContributor(contributor.authorUID);
                 }}),
-                m('img', {src: contributor.editingMode === 'editing' ? '/src/images/Edit.svg': '/src/images/view.svg', title: 'Access Mode', onclick: e => {
+                m('img', {src: contributor.editingMode === 'editing' ? '/src/file-explorer/images/Edit.svg': '/src/file-explorer/images/view.svg', title: 'Access Mode', onclick: e => {
                   if (e.target.src.includes('Edit')) {
                     vnode.attrs.updateContributor(contributor.authorUID, {editingMode: 'viewing'});
                   } else {
                     vnode.attrs.updateContributor(contributor.authorUID, {editingMode: 'editing'});
                   }
                 }}),
-                m('img', {src: contributor.canShare ? '/src/images/Share.svg' : '/src/images/person-off.svg', title: 'Share Permissions', onclick: e => {
+                m('img', {src: contributor.canShare ? '/src/file-explorer/images/Share.svg' : '/src/file-explorer/images/person-off.svg', title: 'Share Permissions', onclick: e => {
                   if (e.target.src.includes('Share')) {
                     vnode.attrs.updateContributor(contributor.authorUID, {canShare: false});
                   } else {
