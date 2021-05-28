@@ -61,9 +61,14 @@ function uuid() {
   });
 }
 
-function pointInRect(x1, y1, x2, y2, x, y)
+function pointInRect(rect, coord)
 {
-  return (x > x1 && x < x2 && y > y1 && y < y2);
+  return (coord.x > rect[0].x && coord.x < rect[1].x && coord.y > rect[0].y && coord.y < rect[1].y);
+}
+
+function pointInCircle(center, radius, coord) {
+  let distSquared = Math.pow(Math.abs(coord.x - center.x), 2) + Math.pow(Math.abs(coord.y - center.y), 2);
+  return (distSquared <= Math.pow(radius, 2));
 }
 
 function pointInPolygon(polygon, p)
@@ -102,6 +107,22 @@ function Angle2D(x1, y1, x2, y2)
   return dtheta;
 }
 
+function getBoundingBox(points) {
+  let bb = [{x: 100000, y: 100000}, {x: 0, y: 0}];
+
+  for (let i = 0; i < points.length; i ++) {
+    let coord = points[i];
+
+    bb[0].x = Math.min(bb[0].x, coord.x);
+    bb[0].y = Math.min(bb[0].y, coord.y);
+
+    bb[1].x = Math.max(bb[1].x, coord.x);
+    bb[1].y = Math.max(bb[1].y, coord.y);
+  }
+
+  return bb;
+}
+
 export {
   getRelativeMousePosition,
   makePoint,
@@ -110,5 +131,7 @@ export {
   inToPix,
   pixToIn,
   pointInRect,
+  pointInCircle,
   pointInPolygon,
+  getBoundingBox,
 };
