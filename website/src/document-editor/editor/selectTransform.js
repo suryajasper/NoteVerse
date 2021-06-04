@@ -24,8 +24,8 @@ export default class SelectTransform {
     );
 
     this.resizeRect.noFill();
-    this.resizeRect.stroke = 'black';
-    this.resizeRect.linewidth = 3;
+    this.resizeRect.stroke = '#5fb2ce';
+    this.resizeRect.linewidth = 1.5;
 
     this.controlPoints = [];
 
@@ -33,13 +33,11 @@ export default class SelectTransform {
       for (let j = 0; j < 2; j++) {
         const controlPoint = this.two.makeCircle(this.initSize[j].x, this.initSize[i].y, 5);
         controlPoint.fill = 'white';
-        controlPoint.stroke = 'black';
-        controlPoint.linewidth = 3;
+        controlPoint.stroke = '#5fb2ce';
+        controlPoint.linewidth = 1.5;
         this.controlPoints.push(controlPoint);
       }
     }
-
-    console.log(this.controlPoints);
 
     this.transform = this.two.makeGroup(this.resizeRect, ...this.controlPoints);
   }
@@ -61,6 +59,8 @@ export default class SelectTransform {
     this.center.x += movement.x;
     this.center.y += movement.y;
 
+    console.log('move', this.center);
+
     this.transform.position.add(movement);
   }
 
@@ -73,9 +73,7 @@ export default class SelectTransform {
       this.controlPoints[this.circleForScale+1].position.add(new Two.Vector(0, shift.y));
     } else {
       this.controlPoints[this.circleForScale-1].position.add(new Two.Vector(0, shift.y));
-    }
-
-    
+    }    
 
     this.resizeRect.translation.x = Math.abs(this.controlPoints[1].translation.x+this.controlPoints[0].translation.x)/2;
     this.resizeRect.translation.y = Math.abs(this.controlPoints[2].translation.y+this.controlPoints[0].translation.y)/2;

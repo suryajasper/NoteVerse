@@ -98,6 +98,15 @@ class Canvas {
     this.fetchStrokes();
   }
 
+  removeStrokeById(id) {
+    for (let i = 0; i < this.strokes.length; i++) {
+      if (this.strokes[i].id == id) {
+        this.strokes.splice(i, 1);
+        return;
+      }
+    }
+  }
+
   handleResize(vnode) {
     this.two.renderer.setSize(vnode.dom.clientWidth, vnode.dom.clientHeight);
     canvasState.scale = vnode.dom.clientWidth / this.initSize.width;
@@ -147,11 +156,31 @@ class Canvas {
             this.selectDragState = this.selectTransform.findClick(pos);
 
           if (this.selectDragState == 'move') {
-            this.startSelectionPos = this.selectTransform.center;
             document.body.style.cursor = 'move';
             return;
           } else if (this.selectDragState == 'new') {
             this.two.remove(this.selectTransform.transform);
+
+            let diff = {
+              x: this.selectTransform.center.x - this.selectTransform.initCenter.x,
+              y: this.selectTransform.center.y - this.selectTransform.initCenter.y,
+            }
+
+            for (let stroke of this.strokesInSelection) {
+              let newStroke = this.two.makeCurve(true);
+              for (let vert of stroke.vertices) {
+                newStroke.vertices.push(makePoint({x: vert.x + diff.x, y: vert.y + diff.y}));
+              }
+              newStroke.noFill();
+              newStroke.stroke = stroke.stroke;
+              newStroke.linewidth = stroke.linewidth;
+
+              this.removeStrokeById(stroke.id);
+              this.strokes.push(newStroke);
+            }
+
+            this.selectionGroup.remove(...this.strokesInSelection);
+            this.refreshPoints();
           }
         }
 
@@ -247,8 +276,6 @@ class Canvas {
 
         if (this.selectDragState == 'move') {
 
-          console.log(this.strokesInSelection);
-
           this.selectionGroup.translation.add(movement);
 
           this.selectTransform.move(movement);
@@ -338,30 +365,7 @@ class Canvas {
 
     if (this.state.tool == 4 && syncE.type != 'mouseout') {
 
-      if (this.selectDragState == 'move') {
-        let diff = {
-          x: this.selectTransform.center.x - this.startSelectionPos.x,
-          y: this.selectTransform.center.y - this.startSelectionPos.y,
-        };
-
-        this.selectionGroup.stroke = 'red';
-
-        let shit = false;
-        for (let stroke of this.strokesInSelection) {
-          console.log(stroke);
-          for (let point of stroke.vertices) {
-            if (!shit) console.log('before fuck', point.x, point.y);
-            point.x += diff.x;
-            point.y += diff.y;
-            if (!shit) console.log('after fuck', point.x, point.y);
-            shit = true;
-          }
-        }
-
-        this.refreshPoints();
-      }
-
-      else if (this.selectDragState == 'new') {
+      if (this.selectDragState == 'new') {
 
         let startTime = performance.now();
         
@@ -402,10 +406,14 @@ class Canvas {
         console.log('pointsinselection', pointsInSelection.length);
 
         this.two.remove(this.currSelection);
-        this.selectTransform = new SelectTransform({two: this.two, initSize: getBoundingBox( pointsInSelection )});
 
-        this.strokesInSelection = selectedStrokes;
-        this.selectionGroup = this.two.makeGroup(...selectedStrokes);
+        if (pointsInSelection.length > 0) {
+          this.selectTransform = new SelectTransform({two: this.two, initSize: getBoundingBox( pointsInSelection )});
+          this.startSelectionPos = this.selectTransform.center;
+  
+          this.strokesInSelection = selectedStrokes;
+          this.selectionGroup = this.two.makeGroup(...selectedStrokes);
+        }
 
         console.log('after lasso', s);
         console.log(`elapsed time ${(performance.now()-startTime)/1000} seconds`);
