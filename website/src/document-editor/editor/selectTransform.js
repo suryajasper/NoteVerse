@@ -16,8 +16,6 @@ export default class SelectTransform {
   }
 
   init() {
-    console.log(this.initSize, this.initCenter);
-
     this.resizeRect = this.two.makeRectangle(
       this.initCenter.x, this.initCenter.y,
       this.initCenter.width, this.initCenter.height,
@@ -38,8 +36,6 @@ export default class SelectTransform {
         this.controlPoints.push(controlPoint);
       }
     }
-
-    this.transform = this.two.makeGroup(this.resizeRect, ...this.controlPoints);
   }
 
   findClick(pos) {
@@ -59,12 +55,20 @@ export default class SelectTransform {
     this.center.x += movement.x;
     this.center.y += movement.y;
 
-    console.log('move', this.center);
+    this.resizeRect.position.add(movement);
+    for (let cp of this.controlPoints)
+      cp.position.add(movement);
+  }
 
-    this.transform.position.add(movement);
+  remove() {
+    this.two.remove(this.resizeRect);
+    for (let cp of this.controlPoints)
+      this.two.remove(cp);
   }
 
   moveControlPoint(shift) {
+
+    shift.y = shift.x * (this.initCenter.height / this.initCenter.width);
 
     this.controlPoints[this.circleForScale].position.add(shift);
     this.controlPoints[(this.circleForScale+2)%4].position.add(new Two.Vector(shift.x, 0));
@@ -73,10 +77,12 @@ export default class SelectTransform {
       this.controlPoints[this.circleForScale+1].position.add(new Two.Vector(0, shift.y));
     } else {
       this.controlPoints[this.circleForScale-1].position.add(new Two.Vector(0, shift.y));
-    }    
-
+    }  
+    
     this.resizeRect.translation.x = Math.abs(this.controlPoints[1].translation.x+this.controlPoints[0].translation.x)/2;
     this.resizeRect.translation.y = Math.abs(this.controlPoints[2].translation.y+this.controlPoints[0].translation.y)/2;
+
+    this.center = {x: this.resizeRect.translation.x, y: this.resizeRect.translation.y};
 
     this.resizeRect.width  = this.controlPoints[1].translation.x-this.controlPoints[0].translation.x;
     this.resizeRect.height = this.controlPoints[2].translation.y-this.controlPoints[0].translation.y;

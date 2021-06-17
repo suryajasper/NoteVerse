@@ -2,7 +2,7 @@ import m from 'mithril';
 import styles from './editor.css';
 import Textbox from './textbox';
 import {canvasState} from './canvas';
-import { getRelativeMousePosition, getAbsoluteMousePosition, uuid, pixToIn, inToPix } from './util';
+import { getRelativeMousePosition, uuid, pixToIn, inToPix } from './util';
 
 export default class FeatureLayer {
   constructor(vnode) {

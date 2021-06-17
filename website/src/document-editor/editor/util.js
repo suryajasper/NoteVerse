@@ -4,8 +4,8 @@ function getRelativeMousePosition(e, scale) {
   const rect = e.target.getBoundingClientRect();
   const raw_pos = e.clientX ? e : {clientX: e.x, clientY: e.y};
   const pos = {
-    x: (raw_pos.clientX - rect.left) / scale,
-    y: (-(rect.top - raw_pos.clientY)) / scale,
+    x: (raw_pos.clientX - rect.left),
+    y: (-(rect.top - raw_pos.clientY)),
   };
   return pos;
 }
@@ -36,8 +36,12 @@ function inToPix(pos, target) {
   };
 }
 
-function makePoint(pos) {
-  const v = new Two.Vector(pos.x, pos.y);
+function makePoint(pos, scene) {
+  let v;
+  if (typeof scene == 'number') 
+    v = new Two.Vector(pos.x, pos.y);
+  else
+    v = new Two.Vector(pos.x / scene.scale - scene.translation.x / scene.scale, pos.y / scene.scale - scene.translation.y / scene.scale);
   v.position = new Two.Vector().copy(v);
   return v;
 }

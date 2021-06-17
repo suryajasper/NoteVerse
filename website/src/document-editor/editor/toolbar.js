@@ -6,6 +6,7 @@ import {
   text,
   eraser,
   select,
+  pan,
 } from '../elements/svg';
 import {
   brushOverlay,
@@ -43,11 +44,14 @@ const toolStyles = [
     join: 'round',
     isCanvasLevel: true,
   },
+  {
+    isCanvasLevel: true,
+  }
 ];
 
 export default class Toolbar {
   constructor(vnode) {
-    this.tools = [brush, eraser, text, image, select];
+    this.tools = [brush, eraser, text, image, select, pan];
     this.overlays = [brushOverlay, eraserOverlay];
     this.styles = vnode.attrs.initStyles || toolStyles;
     this.expand = false;

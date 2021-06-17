@@ -528,7 +528,6 @@ io.on('connection', socket => {
   socket.on('send', (msg, ...data) => {
     for (let id of docsToSockets[socketsToDoc[socket.id]]) {
       if (id != socket.id) {
-        console.log(socket.id, 'is sending', ...data, 'to', id);
         io.to(id).emit(msg, ...data);
       }
     }

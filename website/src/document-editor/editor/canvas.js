@@ -54,7 +54,8 @@ class Canvas {
 
         for (let point of stroke.points) {
           strokeBuild.vertices.push(makePoint(
-            inToPix( point, this.target )
+            inToPix( point, this.target ), 
+            this.two.scene
           ));
           this.points.push({
             stroke: strokeBuild,
@@ -110,12 +111,10 @@ class Canvas {
   handleResize(vnode) {
     this.two.renderer.setSize(vnode.dom.clientWidth, vnode.dom.clientHeight);
     canvasState.scale = vnode.dom.clientWidth / this.initSize.width;
-    this.two.scene.scale = canvasState.scale; 
-    console.log('scale', this.two.scene.scale);
+    this.two.scene.scale = canvasState.scale;
   }
 
   handleToolDown(e, isSyncing) {
-    document.body.style.cursor = 'crosshair';
     this.state.drawing = true;
     const f = {
       target: this.target,
@@ -131,7 +130,7 @@ class Canvas {
           x: e.clientX,
           y: e.clientY,
           target: this.target,
-        }))
+        }), this.two.scene)
       };
       let thisSync = this.syncs[e.uid];
       
@@ -144,22 +143,25 @@ class Canvas {
       thisSync.currStroke.vertices.push(thisSync.lastPos);
     }
     else {
-      let pos = getRelativeMousePosition(f, canvasState.scale);
+      document.body.style.cursor = 'crosshair';
       
-      this.state.lastPos = makePoint(pos);
-
       this.selectDragState = 'new';
+
+      let pos = getRelativeMousePosition(f, this.two.scene.scale);
+
+      this.state.lastPos = makePoint(pos, this.two.scene);
+      this.state.lastPosRaw = makePoint(pos, this.two.scene.scale);
 
       if (this.state.tool == 4) {
         if (this.currSelection) {
           if (this.selectTransform) 
-            this.selectDragState = this.selectTransform.findClick(pos);
+            this.selectDragState = this.selectTransform.findClick(makePoint(pos, this.two.scene));
 
           if (this.selectDragState == 'move') {
             document.body.style.cursor = 'move';
             return;
           } else if (this.selectDragState == 'new') {
-            this.two.remove(this.selectTransform.transform);
+            this.selectTransform.remove();
 
             let diff = {
               x: this.selectTransform.center.x - this.selectTransform.initCenter.x,
@@ -169,7 +171,7 @@ class Canvas {
             for (let stroke of this.strokesInSelection) {
               let newStroke = this.two.makeCurve(true);
               for (let vert of stroke.vertices) {
-                newStroke.vertices.push(makePoint({x: vert.x + diff.x, y: vert.y + diff.y}));
+                newStroke.vertices.push(makePoint({x: vert.x + diff.x, y: vert.y + diff.y}, 1));
               }
               newStroke.noFill();
               newStroke.stroke = stroke.stroke;
@@ -181,6 +183,12 @@ class Canvas {
 
             this.selectionGroup.remove(...this.strokesInSelection);
             this.refreshPoints();
+          } else if (this.selectDragState == 'scale') {
+            this.selectionCenterLast = this.selectTransform.center;
+            this.selectionScaleCenter = this.selectTransform.center;
+            this.lastScaleRel = 1;
+            this.selectionScaleRect = this.selectTransform.resizeRect;
+            this.scaleStartWidth = this.selectTransform.resizeRect.width; 
           }
         }
 
@@ -190,6 +198,8 @@ class Canvas {
 
         this.currSelection.vertices.push(this.state.lastPos);
 
+      } else if (this.state.tool == 5) {
+        document.body.style.cursor = 'move';
       } else {
   
         let posToSend = pixToIn({
@@ -233,15 +243,17 @@ class Canvas {
       clientX: e.clientX,
       clientY: e.clientY,
     };
+    let fRel = getRelativeMousePosition(f, this.two.scene.scale);
 
     let state = this.state;
     if (isSyncing) state = this.syncs[e.uid];
 
-    let pos;
+    let pos, posRaw;
     if (isSyncing) {
-      pos = makePoint(inToPix(e, this.target));
+      pos = makePoint(inToPix(e, this.target), this.two.scene);
     } else {
-      pos = makePoint(getRelativeMousePosition(f, canvasState.scale));
+      pos = makePoint(fRel, this.two.scene);
+      posRaw = makePoint(fRel, this.two.scene.scale);
       if (this.state.tool == 0) {
         this.socket.emit('send', 'syncDrag', Object.assign(
           pixToIn(pos, this.target),
@@ -272,7 +284,7 @@ class Canvas {
         this.currStroke.vertices.push(pos);
       
       else if (this.state.tool == 4) {
-        let movement = new Two.Vector(e.movementX, e.movementY);
+        let movement = new Two.Vector(e.movementX / this.two.scene.scale, e.movementY / this.two.scene.scale);
 
         if (this.selectDragState == 'move') {
 
@@ -292,28 +304,42 @@ class Canvas {
           vertices.push(makePoint({
             x: vertices[0].x,
             y: vertices[0].y,
-          }));
+          }, 1));
 
         } else if (this.selectDragState == 'scale') {
 
           this.selectTransform.moveControlPoint(movement);
+          
+          let initPos = this.selectionScaleCenter;
+          let currPos = this.selectTransform.resizeRect.translation;
+          
+          let newScale = this.selectTransform.resizeRect.width / this.selectTransform.initCenter.width;
+          let scaleDiff = newScale - this.selectionGroup.scale;
 
-          let strokePos = this.strokesInSelection.translation;
-          let selectPos = this.selectTransform.center;
-          let initPos = this.selectTransform.initCenter;
+          let newScaleRel = this.selectTransform.resizeRect.width / this.scaleStartWidth;
+          let scaleDiffRel = newScaleRel - this.lastScaleRel;
 
-          if (this.cp) {
-            this.cp.translation.x = strokePos.x;
-            this.cp.translation.y = strokePos.y;
-          } else {
-            this.cp = this.two.makeCircle(strokePos.x, strokePos.y, 10);
-          }
+          let shift = {
+            x: currPos.x - this.selectionCenterLast.x,
+            y: currPos.y - this.selectionCenterLast.y,
+          };
 
-          this.strokesInSelection.position.add(selectPos.x-strokePos.x-initPos.x, selectPos.y-strokePos.y-initPos.y);
-          this.strokesInSelection.scale = this.selectTransform.resizeRect.width / initPos.width;
+          this.selectionGroup.scale = newScale;
+          this.selectionGroup.translation.add(-scaleDiffRel * initPos.x + shift.x, -scaleDiffRel * initPos.y + shift.y);
 
-          //this.strokesInSelection.translation.set(this.selectTransform.center.x, this.selectTransform.center.y);
+          this.selectionCenterLast = Object.assign({}, currPos);
+          this.lastScaleRel = newScaleRel;
+
         }
+      }
+
+      else if (this.state.tool == 5) {
+        this.two.scene.translation.add(
+          new Two.Vector(
+            posRaw.x - state.lastPosRaw.x,
+            posRaw.y - state.lastPosRaw.y,
+          )
+        );
       }
     }
 
@@ -322,6 +348,7 @@ class Canvas {
     }
 
     state.lastPos = pos;
+    state.lastPosRaw = posRaw;
   }
 
   collectionToArray(coll, extractValues) {
@@ -339,8 +366,6 @@ class Canvas {
   refreshPoints() {
     this.points = [];
 
-    console.log('refreshing points', this.strokes.length);
-
     for (let stroke of this.strokes) {
       for (let i = 0; i < stroke.vertices.length; i++) {
         this.points.push({
@@ -352,16 +377,12 @@ class Canvas {
         });
       }
     }
-
-    console.log('after refresh', this.points.length);
   }
 
   handleToolUp(syncE) {
     document.body.style.cursor = 'default';
     this.state.drawing = false;
     clearTimeout(this.idleTimeout);
-
-    console.log('aewfoijweaofijpaweofijawpeofij')
 
     if (this.state.tool == 4 && syncE.type != 'mouseout') {
 
@@ -413,6 +434,8 @@ class Canvas {
   
           this.strokesInSelection = selectedStrokes;
           this.selectionGroup = this.two.makeGroup(...selectedStrokes);
+
+          this.selectionScaleCenter = this.selectTransform.initCenter;
         }
 
         console.log('after lasso', s);
@@ -490,6 +513,34 @@ class Canvas {
     this.handleToolUp(e);
   }
 
+  zoom(e) {
+    let factor = 0.97;
+    const maxZoom = 5;
+    const delta = e.deltaY / Math.abs(e.deltaY);
+
+    if (delta < 0) {
+      if (this.two.scene.scale >= maxZoom) return;
+      factor = 1 / factor;
+    }
+    
+    const rect = e.target.getBoundingClientRect();
+
+    const dim = {
+      x: rect.right - rect.left,
+      y: rect.top - rect.bottom,
+    };
+
+    this.two.scene.scale *= factor;
+
+    let currScale = this.two.scene.scale;
+    
+    this.two.scene.translation.add( new Two.Vector(
+      - ( e.clientX * currScale * (factor - 1) ), 
+      - ( e.clientY * currScale * (factor - 1) ),
+    ));
+        
+  }
+
   view(vnode) {
     this.state.style = vnode.attrs.editorState.style;
     this.state.tool = vnode.attrs.editorState.tool;
@@ -509,6 +560,9 @@ class Canvas {
       onmouseup: (e) => {
         vnode.dom.removeEventListener('pointermove', this.handleToolDrag);
         this.handleToolUp(false);
+      },
+      onwheel: (e) => {
+        this.zoom(e);
       },
     }, vnode.children);
   }
