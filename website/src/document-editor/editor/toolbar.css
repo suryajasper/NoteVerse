@@ -77,7 +77,7 @@ svg {
   display: flex;
   flex-wrap: wrap;
   width: 12em;
-  height: 14.5em;
+  height: 100%;
   overflow-x: hidden;
   overflow-y: scroll;
   -ms-overflow-style: none;  /* IE and Edge */
@@ -105,6 +105,10 @@ svg {
 
 .color_select {
   border: 3px solid #555;
+}
+
+.transparent_color_select {
+  background-image: url('/src/document-editor/images/transparent.png');
 }
 
 input {

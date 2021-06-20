@@ -16,14 +16,19 @@ export default class SelectTransform {
   }
 
   init() {
+    let style = {
+      stroke: '#5fb2ce',
+      linewidth: 1.5,
+      opacity: 1,
+    }
+
     this.resizeRect = this.two.makeRectangle(
       this.initCenter.x, this.initCenter.y,
       this.initCenter.width, this.initCenter.height,
     );
 
     this.resizeRect.noFill();
-    this.resizeRect.stroke = '#5fb2ce';
-    this.resizeRect.linewidth = 1.5;
+    this.resizeRect = Object.assign(this.resizeRect, style);
 
     this.controlPoints = [];
 
@@ -31,8 +36,7 @@ export default class SelectTransform {
       for (let j = 0; j < 2; j++) {
         const controlPoint = this.two.makeCircle(this.initSize[j].x, this.initSize[i].y, 5);
         controlPoint.fill = 'white';
-        controlPoint.stroke = '#5fb2ce';
-        controlPoint.linewidth = 1.5;
+        controlPoint = Object.assign(controlPoint, style);
         this.controlPoints.push(controlPoint);
       }
     }
@@ -49,6 +53,14 @@ export default class SelectTransform {
       return 'move';
     }
     return 'new';
+  }
+
+  updateScale(scale) {
+    for (let cp of this.controlPoints) {
+      cp.radius = 5 / scale;
+      cp.linewidth = 1.5 / scale;
+    }
+    this.resizeRect.linewidth = 1.5 / scale;
   }
 
   move(movement) {

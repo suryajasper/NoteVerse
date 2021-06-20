@@ -5,7 +5,7 @@
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js",
+    "server": "node server.js",
     "build": "webpack --mode production --config webpack.config.js",
     "profile": "webpack --mode production --config webpack.profile.js",
     "dev": "webpack serve --mode development --config webpack.dev.js --port 8812 --host localhost"

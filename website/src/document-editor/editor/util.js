@@ -127,6 +127,15 @@ function getBoundingBox(points) {
   return bb;
 }
 
+function extractStyle(stroke) {
+  let keys = ['stroke', 'linewidth', 'opacity', 'cap', 'join'];
+  let style = {};
+
+  for (let key of keys) style[key] = stroke[key];
+
+  return style;
+}
+
 export {
   getRelativeMousePosition,
   makePoint,
@@ -138,4 +147,5 @@ export {
   pointInCircle,
   pointInPolygon,
   getBoundingBox,
+  extractStyle,
 };

@@ -3,7 +3,7 @@ import styles from './navbar.css';
 
 export default {
   view(vnode) {
-    return m('div', { class: styles.container },
+    return m('div', { class: styles.container, style: 'display: none;' },
       m(m.route.Link, { class: styles.home, href: '/' }, 
         m('img', {src: '/src/file-explorer/images/noteverse.jpg', class: styles.homeImage})
       ),
